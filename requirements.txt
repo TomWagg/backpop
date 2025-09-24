@@ -27,3 +27,4 @@ sphinx-design
 sphinx-copybutton
 meson
 nautilus-sampler
+cosmic-popsynth
