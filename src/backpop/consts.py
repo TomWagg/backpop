@@ -1,5 +1,5 @@
 __all__ = ["ALL_COLUMNS", "INTEGER_COLUMNS", "BPP_COLUMNS", "BCM_COLUMNS",
-           "KICK_COLUMNS", "BPP_SHAPE", "KICK_SHAPE", "FLAG_GROUPS"]
+           "KICK_COLUMNS", "BPP_SHAPE", "KICK_SHAPE", "FLAG_GROUPS", "NATAL_KICK_TRANSLATOR"]
 
 # COSMIC columns
 ALL_COLUMNS = ['tphys', 'mass_1', 'mass_2', 'kstar_1', 'kstar_2', 'sep', 'porb',
@@ -56,4 +56,11 @@ FLAG_GROUPS = {
     'metvars': ['zsun'],
     'mixvars': ['rejuv_fac'],
     'magvars': ['bconst', 'ck']
+}
+
+NATAL_KICK_TRANSLATOR = {
+    "vk": 0,
+    "phi": 1,
+    "theta": 2,
+    "omega": 3
 }

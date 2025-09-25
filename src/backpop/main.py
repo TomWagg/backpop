@@ -36,31 +36,13 @@ def set_flags(params_in, defaults_file='cosmic_defaults.ini'):
     natal_kick = np.zeros((2,5))
     qcrit_array = np.zeros(16)
     qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
-    
+
     for param in params_in.keys():
         # handle kicks
-        # this is hacky -- think about this more.
         if param in ["vk1", "phi1", "theta1", "omega1", "vk2", "phi2", "theta2", "omega2"]:
-            if "1" in param:
-                if "vk" in param:
-                    natal_kick[0,0] = params_in[param]
-                elif "phi" in param:
-                    natal_kick[0,1] = params_in[param]
-                elif "theta" in param:
-                    natal_kick[0,2] = params_in[param]
-                elif "omega" in param:
-                    natal_kick[0,3] = params_in[param]
-                natal_kick[0,4] = 1
-            elif "2" in param:
-                if "vk" in param:
-                    natal_kick[1,0] = params_in[param]
-                elif "phi" in param:
-                    natal_kick[1,1] = params_in[param]
-                elif "theta" in param:
-                    natal_kick[1,2] = params_in[param]
-                elif "omega" in param:
-                    natal_kick[1,3] = params_in[param]
-                natal_kick[1,4] = 2
+            param_name = param[:-1]
+            param_star = int(param[-1]) - 1
+            natal_kick[param_star, NATAL_KICK_TRANSLATOR[param_name]] = params_in[param]
         elif param in qc_list:
             ind_dict = {}
             for k, v in zip(qc_list, range(0,10)):
