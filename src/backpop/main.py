@@ -46,21 +46,21 @@ class BackPop():
                 self.obs["out_name"].append(config_dict[k]["out_name"].strip())
 
         self.rv = multivariate_normal(
-            mean=np.array(obs["mean"]),
-            cov=np.diag(np.array(obs["sigma"])**2)
+            mean=np.array(self.obs["mean"]),
+            cov=np.diag(np.array(self.obs["sigma"])**2)
         )
         
         # Set up Nautilus prior
         self.prior = Prior()
-        for i in range(len(var["name"])):
-            self.prior.add_parameter(var["name"][i], dist=(var["min"][i], var["max"][i]))
+        for i in range(len(self.var["name"])):
+            self.prior.add_parameter(self.var["name"][i], dist=(self.var["min"][i], self.var["max"][i]))
     
     def run_sampler(self):
         if self.config["verbose"]:
-            print(f"Running sampling using multiprocessing with {backpop_config["n_threads"]} threads")
+            print(f"Running sampling using multiprocessing with {self.config["n_threads"]} threads")
     
         self.sampler = Sampler(
-            prior=prior, 
+            prior=self.prior, 
             likelihood=likelihood, 
             n_live=self.config["n_live"], 
             pool=self.config["n_threads"],
@@ -68,9 +68,10 @@ class BackPop():
                          ('kick_info', float, 2*len(KICK_COLUMNS))],
             filepath=os.path.join(self.config["filepath"], 'samples_out.hdf5'), 
             resume=self.config["resume"],
-            likelihood_args=(rv, var["min"], var["max"], obs["out_name"], self.config["phase_select"],)
+            likelihood_args=(self.rv, self.var["min"], self.var["max"],
+                             self.obs["out_name"], self.config["phase_select"],)
         )
-        sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
+        self.sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
     
     def save_output(self):
         points, log_w, log_l, blobs = self.sampler.posterior(return_blobs=True)
