@@ -133,110 +133,110 @@ class BackPop():
         return None
 
 
-def evolv2(params_in, params_out, phase_select='BBH_merger'):
-    '''Evolve a binary with COSMIC given input parameters and return the output parameters
-    at the time of the first BBH merger, as well as the full BPP and kick arrays.
+    def evolv2(self, params_in, params_out, phase_select='BBH_merger'):
+        '''Evolve a binary with COSMIC given input parameters and return the output parameters
+        at the time of the first BBH merger, as well as the full BPP and kick arrays.
 
-    Parameters
-    ----------
-    params_in : dict
-        Dictionary of input parameters that will be sampled by Nautilus
-    params_out : list
-        List of output parameters to return at the time of the selected phase
-    phase_select : str, optional
-        The phase to select the output parameters from. Currently only 'BBH_merger' is
-        implemented. Default is 'BBH_merger'.
-    
-    Returns
-    -------
-    out : pd.DataFrame or None
-        DataFrame of output parameters at the time of the selected phase, or None if
-        the phase was not reached
-    bpp : np.ndarray or None
-        Full BPP array from COSMIC, or None if the phase was not reached
-    kick_info : np.ndarray or None
-        Full kick info array from COSMIC, or None if the phase was not reached
-    '''
-    # handle initial binary parameters first
-    m1 = params_in["m1"] 
-    m2 = params_in["m2"]
-    m2, m1 = np.sort([m1,m2],axis=0)
-    tb = params_in["tb"] 
-    e = params_in["e"]
-    # this is hardcoded for BH3... need to figure out how to specify fixed quantities..
-    metallicity = 1.23e-4
-    # set the other flags
-    flags = set_flags(params_in)
-    _ = set_evolvebin_flags(flags)
-    
-    bpp_columns = BPP_COLUMNS
-    bcm_columns = BCM_COLUMNS
-    
-    col_inds_bpp = np.zeros(len(ALL_COLUMNS), dtype=int)
-    col_inds_bpp[:len(bpp_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bpp_columns]
-    n_col_bpp = len(BPP_COLUMNS)    
+        Parameters
+        ----------
+        params_in : dict
+            Dictionary of input parameters that will be sampled by Nautilus
+        params_out : list
+            List of output parameters to return at the time of the selected phase
+        phase_select : str, optional
+            The phase to select the output parameters from. Currently only 'BBH_merger' is
+            implemented. Default is 'BBH_merger'.
+        
+        Returns
+        -------
+        out : pd.DataFrame or None
+            DataFrame of output parameters at the time of the selected phase, or None if
+            the phase was not reached
+        bpp : np.ndarray or None
+            Full BPP array from COSMIC, or None if the phase was not reached
+        kick_info : np.ndarray or None
+            Full kick info array from COSMIC, or None if the phase was not reached
+        '''
+        # handle initial binary parameters first
+        m1 = params_in["m1"] 
+        m2 = params_in["m2"]
+        m2, m1 = np.sort([m1,m2],axis=0)
+        tb = params_in["tb"] 
+        e = params_in["e"]
+        # this is hardcoded for BH3... need to figure out how to specify fixed quantities..
+        metallicity = 1.23e-4
+        # set the other flags
+        flags = self.set_flags(params_in)
+        self.set_evolvebin_flags(flags)
+        
+        bpp_columns = BPP_COLUMNS
+        bcm_columns = BCM_COLUMNS
+        
+        col_inds_bpp = np.zeros(len(ALL_COLUMNS), dtype=int)
+        col_inds_bpp[:len(bpp_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bpp_columns]
+        n_col_bpp = len(BPP_COLUMNS)    
 
-    col_inds_bcm = np.zeros(len(ALL_COLUMNS), dtype=int)
-    col_inds_bcm[:len(bcm_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bcm_columns]
-    n_col_bcm = len(BCM_COLUMNS)
-    
-    _evolvebin.col.n_col_bpp = n_col_bpp
-    _evolvebin.col.col_inds_bpp = col_inds_bpp
-    _evolvebin.col.n_col_bcm = n_col_bcm
-    _evolvebin.col.col_inds_bcm = col_inds_bcm
-    
-    # setup the inputs for _evolvebin
-    zpars = np.zeros(20)
-    mass = np.array([m1,m2])
-    mass0 = np.array([m1,m2])
-    epoch = np.array([0.0,0.0])
-    ospin = np.array([0.0,0.0])
-    tphysf = 13700.0
-    dtp = 0.0
-    rad = np.array([0.0,0.0])
-    lumin = np.array([0.0,0.0])
-    massc = np.array([0.0,0.0])
-    radc = np.array([0.0,0.0])
-    menv = np.array([0.0,0.0])
-    renv = np.array([0.0,0.0])
-    B_0 = np.array([0.0,0.0])
-    bacc = np.array([0.0,0.0])
-    tacc = np.array([0.0,0.0])
-    tms = np.array([0.0,0.0])
-    bhspin = np.array([0.0,0.0])
-    tphys = 0.0
-    bkick = np.zeros(20)
-    bpp_index_out = 0
-    bcm_index_out = 0
-    kick_info_out = np.zeros(34)
-    kstar = np.array([1,1])
-    kick_info = np.zeros((2, 18))
+        col_inds_bcm = np.zeros(len(ALL_COLUMNS), dtype=int)
+        col_inds_bcm[:len(bcm_columns)] = [ALL_COLUMNS.index(col) + 1 for col in bcm_columns]
+        n_col_bcm = len(BCM_COLUMNS)
+        
+        _evolvebin.col.n_col_bpp = n_col_bpp
+        _evolvebin.col.col_inds_bpp = col_inds_bpp
+        _evolvebin.col.n_col_bcm = n_col_bcm
+        _evolvebin.col.col_inds_bcm = col_inds_bcm
+        
+        # setup the inputs for _evolvebin
+        zpars = np.zeros(20)
+        mass = np.array([m1,m2])
+        mass0 = np.array([m1,m2])
+        epoch = np.array([0.0,0.0])
+        ospin = np.array([0.0,0.0])
+        tphysf = 13700.0
+        dtp = 0.0
+        rad = np.array([0.0,0.0])
+        lumin = np.array([0.0,0.0])
+        massc = np.array([0.0,0.0])
+        radc = np.array([0.0,0.0])
+        menv = np.array([0.0,0.0])
+        renv = np.array([0.0,0.0])
+        B_0 = np.array([0.0,0.0])
+        bacc = np.array([0.0,0.0])
+        tacc = np.array([0.0,0.0])
+        tms = np.array([0.0,0.0])
+        bhspin = np.array([0.0,0.0])
+        tphys = 0.0
+        bkick = np.zeros(20)
+        bpp_index_out = 0
+        bcm_index_out = 0
+        kick_info_out = np.zeros(34)
+        kstar = np.array([1,1])
+        kick_info = np.zeros((2, 18))
 
 
-    [bpp_index, bcm_index, kick_info_arrays] = _evolvebin.evolv2(kstar,mass,tb,e,metallicity,tphysf,
-                                                          dtp,mass0,rad,lumin,massc,radc,
-                                                          menv,renv,ospin,B_0,bacc,tacc,epoch,tms,
-                                                          bhspin,tphys,zpars,bkick,kick_info)
+        [bpp_index, bcm_index, kick_info_arrays] = _evolvebin.evolv2(kstar,mass,tb,e,metallicity,tphysf,
+                                                            dtp,mass0,rad,lumin,massc,radc,
+                                                            menv,renv,ospin,B_0,bacc,tacc,epoch,tms,
+                                                            bhspin,tphys,zpars,bkick,kick_info)
+        
+        bpp = _evolvebin.binary.bpp[:bpp_index, :n_col_bpp].copy()
+        _evolvebin.binary.bpp[:bpp_index, :n_col_bpp] = np.zeros(bpp.shape)
+        bcm = _evolvebin.binary.bcm[:bcm_index, :n_col_bcm].copy()
+        _evolvebin.binary.bcm[:bcm_index, :n_col_bcm] = np.zeros(bcm.shape)
+        
+        
+        bpp = pd.DataFrame(bpp, columns=BPP_COLUMNS)
+        
     
-    bpp = _evolvebin.binary.bpp[:bpp_index, :n_col_bpp].copy()
-    _evolvebin.binary.bpp[:bpp_index, :n_col_bpp] = np.zeros(bpp.shape)
-    bcm = _evolvebin.binary.bcm[:bcm_index, :n_col_bcm].copy()
-    _evolvebin.binary.bcm[:bcm_index, :n_col_bcm] = np.zeros(bcm.shape)
-    
-    
-    bpp = pd.DataFrame(bpp, columns=BPP_COLUMNS)
-    
-   
-    kick_info = pd.DataFrame(kick_info_arrays,
-                             columns=KICK_COLUMNS,
-                             index=kick_info_arrays[:, -1].astype(int))
-    
-    out = select.select_phase(bpp, phase_select=phase_select)
+        kick_info = pd.DataFrame(kick_info_arrays,
+                                columns=KICK_COLUMNS,
+                                index=kick_info_arrays[:, -1].astype(int))
+        
+        out = select.select_phase(bpp, phase_select=phase_select)
 
-    if len(out) > 0:
-        return out[params_out].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
-    else:
-        return None, None, None
+        if len(out) > 0:
+            return out[params_out].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
+        else:
+            return None, None, None
 
 
 def likelihood(rv, lower_bound, upper_bound, params_out, phase_select, x):
