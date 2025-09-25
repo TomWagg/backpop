@@ -80,72 +80,56 @@ class BackPop():
 
 
 
-def set_flags(params_in, defaults_file='cosmic_defaults.ini'):
-    '''Create a Dictionary of COSMIC flags from input parameters that uses defaults from an ini file
-    
-    Parameters
-    ----------
-    params_in : dict
-        Dictionary of input parameters to set. These will override the defaults
+    def set_flags(self, params_in):
+        '''create a Dictionary of COSMIC flags that updated defaults with input parameters
+        '''
+        natal_kick = np.zeros((2,5))
+        qcrit_array = np.zeros(16)
+        qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
+
+        # update flags based on input params
+        for param in params_in.keys():
+            # create natal kick arrays for each star if necessary
+            if param in ["vk1", "phi1", "theta1", "omega1", "vk2", "phi2", "theta2", "omega2"]:
+                param_name = param[:-1]
+                param_star = int(param[-1]) - 1
+                natal_kick[param_star, NATAL_KICK_TRANSLATOR[param_name]] = params_in[param]
+            # same for qcrit_arrays
+            elif param in qc_list:
+                ind_dict = {}
+                for k, v in zip(qc_list, range(0,10)):
+                    ind_dict[v] = k
+                qcrit_array[ind_dict[param]] = params_in[param]
+            # otherwise just set the flag
+            else:
+                self.flags[param] = params_in[param]
+
+        # if we set any of the arrays, update the flags
+        if np.any(qcrit_array != 0.0):
+            self.flags["qcrit_array"] = qcrit_array   
+        if np.any(natal_kick != 0.0):
+            self.flags["natal_kick_array"] = natal_kick
+
+
+    def set_evolvebin_flags(self):
+        '''Set the flags in the _evolvebin Fortran module from a dictionary of flags
         
-    Returns
-    -------
-    flags : dict
-        Dictionary of COSMIC flags to be passed to COSMIC
-    '''
-    config = ConfigParser()
-    config.read(defaults_file)
-    flags = {section: dict(config.items(section)) for section in config.sections()}["bse"]
-
-    natal_kick = np.zeros((2,5))
-    qcrit_array = np.zeros(16)
-    qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
-
-    # update flags based on input params
-    for param in params_in.keys():
-        # create natal kick arrays for each star if necessary
-        if param in ["vk1", "phi1", "theta1", "omega1", "vk2", "phi2", "theta2", "omega2"]:
-            param_name = param[:-1]
-            param_star = int(param[-1]) - 1
-            natal_kick[param_star, NATAL_KICK_TRANSLATOR[param_name]] = params_in[param]
-        # same for qcrit_arrays
-        elif param in qc_list:
-            ind_dict = {}
-            for k, v in zip(qc_list, range(0,10)):
-                ind_dict[v] = k
-            qcrit_array[ind_dict[param]] = params_in[param]
-        # otherwise just set the flag
-        else:
-            flags[param] = params_in[param]
-
-    # if we set any of the arrays, update the flags
-    if np.any(qcrit_array != 0.0):
-        flags["qcrit_array"] = qcrit_array   
-    if np.any(natal_kick != 0.0):
-        flags["natal_kick_array"] = natal_kick
-    
-    return flags
-
-
-def set_evolvebin_flags(flags):
-    '''Set the flags in the _evolvebin Fortran module from a dictionary of flags
-    
-    Parameters
-    ----------
-    flags : dict
-        Dictionary of COSMIC flags to be passed to COSMIC
-    
-    Returns
-    -------
-    None
-    '''
-    # the following is equivalent to _evolvebin.windvars.neta = flags["neta"], etc
-    for g in FLAG_GROUPS:
-        for k in FLAG_GROUPS[g]:
-            if k not in flags:
-                raise ValueError(f"flag {k} not found in flags dictionary")
-            getattr(getattr(_evolvebin, g), k) = flags[k]
-    return None
+        Parameters
+        ----------
+        flags : dict
+            Dictionary of COSMIC flags to be passed to COSMIC
+        
+        Returns
+        -------
+        None
+        '''
+        # the following is equivalent to _evolvebin.windvars.neta = flags["neta"], etc
+        for g in FLAG_GROUPS:
+            for k in FLAG_GROUPS[g]:
+                if k not in self.flags:
+                    raise ValueError(f"flag {k} not found in flags dictionary")
+                getattr(getattr(_evolvebin, g), k) = self.flags[k]
+        return None
 
 
 def select_phase(bpp, phase_select='BBH_merger'):
