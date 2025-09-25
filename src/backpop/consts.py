@@ -1,5 +1,5 @@
 __all__ = ["ALL_COLUMNS", "INTEGER_COLUMNS", "BPP_COLUMNS", "BCM_COLUMNS",
-           "KICK_COLUMNS", "BPP_SHAPE", "KICK_SHAPE"]
+           "KICK_COLUMNS", "BPP_SHAPE", "KICK_SHAPE", "FLAG_GROUPS"]
 
 # COSMIC columns
 ALL_COLUMNS = ['tphys', 'mass_1', 'mass_2', 'kstar_1', 'kstar_2', 'sep', 'porb',
@@ -39,3 +39,21 @@ KICK_COLUMNS = ['star', 'disrupted', 'natal_kick', 'phi', 'theta', 'mean_anomaly
 
 BPP_SHAPE = (35, len(BPP_COLUMNS))
 KICK_SHAPE = (2, len(KICK_COLUMNS))
+
+FLAG_GROUPS = {
+    'windvars': ['neta', 'bwind', 'hewind', 'beta', 'xi', 'acc2', 'eddfac', 'gamma', 'epsnov'],
+    'cevars': ['alpha1', 'lambdaf', 'qcrit_array'],
+    'ceflags': ['ceflag', 'cekickflag', 'cemergeflag', 'cehestarflag', 'ussn'],
+    'flags': ['windflag', 'eddlimflag', 'qcflag', 'bhflag', 'aic', 'remnantflag', 'wd_mass_lim',
+            'bhspinflag', 'grflag', 'tflag', 'st_tide', 'ifflag', 'wdflag', 'bdecayfac',
+            'rejuvflag', 'bhms_coll_flag', 'htpmb', 'st_cr', 'rtmsflag'],
+    'snvars': ['kickflag', 'sigma', 'bhsigmafrac', 'sigmadiv', 'ecsn', 'ecsn_mlow', 'pisn',
+                'polar_kick_angle', 'natal_kick_array', 'mxns', 'rembar_massloss', 'bhspinmag'],
+    'points': ['pts1', 'pts2', 'pts3'],
+    'tidalvars': ['fprimc_array'],
+    'rand1': ["random_seed"],
+    'mtvars': ['don_lim', 'acc_lim'],
+    'metvars': ['zsun'],
+    'mixvars': ['rejuv_fac'],
+    'magvars': ['bconst', 'ck']
+}

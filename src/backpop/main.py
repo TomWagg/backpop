@@ -4,10 +4,11 @@ import pandas as pd
 
 from scipy.stats import multivariate_normal
 from argparse import ArgumentParser
+from configparser import ConfigParser
 
 from nautilus import Prior, Sampler
 
-from .utils import *
+from .consts import *
 
 
 class BackPop():
@@ -15,9 +16,8 @@ class BackPop():
         pass
 
 
-def set_flags(params_in):
-    '''Create a Dictionary of COSMIC flags from input parameters that uses defaults
-    that are currently hardcoded
+def set_flags(params_in, defaults_file='cosmic_defaults.ini'):
+    '''Create a Dictionary of COSMIC flags from input parameters that uses defaults from an ini file
     
     Parameters
     ----------
@@ -29,71 +29,12 @@ def set_flags(params_in):
     flags : dict
         Dictionary of COSMIC flags to be passed to COSMIC
     '''
+    config = ConfigParser()
+    config.read(defaults_file)
+    flags = {section: dict(config.items(section)) for section in config.sections()}["bse"]
 
-    flags = dict()
-
-    flags["neta"] = 0.5
-    flags["bwind"] = 0.0
-    flags["hewind"] = 0.5
-    flags["beta"] = 0.125
-    flags["xi"] = 0.0
-    flags["acc2"] = 1.5
-    flags["epsnov"] = 0.001
-    flags["eddfac"] = 1.0
-    flags["alpha1"] = 1.0
-    flags["qcrit_array"] = np.array([0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0])
-    flags["lambdaf"] = 0.0
-    flags["pts1"] = 0.05
-    flags["pts2"] = 0.01
-    flags["pts3"] = 0.02
-    flags["tflag"] = 0
-    flags["ifflag"] = 0
-    flags["wdflag"] = 1
-    flags["rtmsflag"] = 0
-    flags["ceflag"] = 1
-    flags["cekickflag"] = 2
-    flags["cemergeflag"] = 0
-    flags["cehestarflag"] = 0
-    flags["bhflag"] = 0
-    flags["remnantflag"] = 4
-    flags["grflag"] = 1
-    flags["bhms_coll_flag"] = 1
-    flags["mxns"] = 3.0
-    flags["pisn"] = -2
-    flags["ecsn"] = 2.5
-    flags["ecsn_mlow"] = 1.6
-    flags["aic"] = 1
-    flags["ussn"] = 1
-    flags["sigma"] = 265.0
-    flags["sigmadiv"] = -20.0
-    flags["bhsigmafrac"] = 1.0
-    flags["polar_kick_angle"] = 90.0
-    flags["natal_kick_array"] = np.array([[-100.0,-100.0,-100.0,-100.0,0.0],[-100.0,-100.0,-100.0,-100.0,0.0]])
-    flags["kickflag"] = -1
-    flags["rembar_massloss"] = 0.5
-    flags["bhspinmag"] = 0
-    flags["don_lim"] = -2
-    flags["acc_lim"] = -1
-    flags["gamma"] = -2
-    flags["bdecayfac"] = 1
-    flags["bconst"] = 3000
-    flags["ck"] = 1000
-    flags["windflag"] = 3
-    flags["qcflag"] = 5
-    flags["eddlimflag"] = 0
-    flags["fprimc_array"] = np.ones(16) * 2.0/21.0 * 0.0
-    flags["randomseed"] = 42
-    flags["bhspinflag"] = 0
-    flags["rejuv_fac"] = 1.0
-    flags["rejuvflag"] = 1
-    flags["htpmb"] = 3
-    flags["ST_cr"] = 0
-    flags["ST_tide"] = 0
-    flags["zsun"] = 0.02
-    flags["using_cmc"] = 0
     natal_kick = np.zeros((2,5))
     qcrit_array = np.zeros(16)
-    alpha1 = np.zeros(2)
     qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
     
     for param in params_in.keys():
@@ -149,66 +90,12 @@ def set_evolvebin_flags(flags):
     -------
     None
     '''
-
-    _evolvebin.windvars.neta = flags["neta"]
-    _evolvebin.windvars.bwind = flags["bwind"]
-    _evolvebin.windvars.hewind = flags["hewind"]
-    _evolvebin.cevars.alpha1 = flags["alpha1"]
-    _evolvebin.cevars.lambdaf = flags["lambdaf"]
-    _evolvebin.ceflags.ceflag = flags["ceflag"]
-    _evolvebin.flags.tflag = flags["tflag"]
-    _evolvebin.flags.ifflag = flags["ifflag"]
-    _evolvebin.flags.wdflag = flags["wdflag"]
-    _evolvebin.flags.rtmsflag = flags["rtmsflag"]
-    _evolvebin.snvars.pisn = flags["pisn"]
-    _evolvebin.flags.bhflag = flags["bhflag"]
-    _evolvebin.flags.remnantflag = flags["remnantflag"]
-    _evolvebin.ceflags.cekickflag = flags["cekickflag"]
-    _evolvebin.ceflags.cemergeflag = flags["cemergeflag"]
-    _evolvebin.ceflags.cehestarflag = flags["cehestarflag"]
-    _evolvebin.flags.grflag = flags["grflag"]
-    _evolvebin.flags.bhms_coll_flag = flags["bhms_coll_flag"]
-    _evolvebin.snvars.mxns = flags["mxns"]
-    _evolvebin.points.pts1 = flags["pts1"]
-    _evolvebin.points.pts2 = flags["pts2"]
-    _evolvebin.points.pts3 = flags["pts3"]
-    _evolvebin.snvars.ecsn = flags["ecsn"]
-    _evolvebin.snvars.ecsn_mlow = flags["ecsn_mlow"]
-    _evolvebin.flags.aic = flags["aic"]
-    _evolvebin.ceflags.ussn = flags["ussn"]
-    _evolvebin.snvars.sigma = flags["sigma"]
-    _evolvebin.snvars.sigmadiv = flags["sigmadiv"]
-    _evolvebin.snvars.bhsigmafrac = flags["bhsigmafrac"]
-    _evolvebin.snvars.polar_kick_angle = flags["polar_kick_angle"]
-    _evolvebin.snvars.natal_kick_array = flags["natal_kick_array"]
-    _evolvebin.cevars.qcrit_array = flags["qcrit_array"]
-    _evolvebin.mtvars.don_lim = flags["don_lim"]
-    _evolvebin.mtvars.acc_lim = flags["acc_lim"]
-    _evolvebin.windvars.beta = flags["beta"]
-    _evolvebin.windvars.xi = flags["xi"]
-    _evolvebin.windvars.acc2 = flags["acc2"]
-    _evolvebin.windvars.epsnov = flags["epsnov"]
-    _evolvebin.windvars.eddfac = flags["eddfac"]
-    _evolvebin.windvars.gamma = flags["gamma"]
-    _evolvebin.flags.bdecayfac = flags["bdecayfac"]
-    _evolvebin.magvars.bconst = flags["bconst"]
-    _evolvebin.magvars.ck = flags["ck"]
-    _evolvebin.flags.windflag = flags["windflag"]
-    _evolvebin.flags.qcflag = flags["qcflag"]
-    _evolvebin.flags.eddlimflag = flags["eddlimflag"]
-    _evolvebin.tidalvars.fprimc_array = flags["fprimc_array"]
-    _evolvebin.rand1.idum1 = flags["randomseed"]
-    _evolvebin.flags.bhspinflag = flags["bhspinflag"]
-    _evolvebin.snvars.bhspinmag = flags["bhspinmag"]
-    _evolvebin.mixvars.rejuv_fac = flags["rejuv_fac"]
-    _evolvebin.flags.rejuvflag = flags["rejuvflag"]
-    _evolvebin.flags.htpmb = flags["htpmb"]
-    _evolvebin.flags.st_cr = flags["ST_cr"]
-    _evolvebin.flags.st_tide = flags["ST_tide"]
-    _evolvebin.snvars.rembar_massloss = flags["rembar_massloss"]
-    _evolvebin.metvars.zsun = flags["zsun"]
-    _evolvebin.snvars.kickflag = flags["kickflag"]
-
+    # the following is equivalent to _evolvebin.windvars.neta = flags["neta"], etc
+    for g in FLAG_GROUPS:
+        for k in FLAG_GROUPS[g]:
+            if k not in flags:
+                raise ValueError(f"flag {k} not found in flags dictionary")
+            getattr(getattr(_evolvebin, g), k) = flags[k]
     return None
 
 
