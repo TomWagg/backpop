@@ -158,12 +158,13 @@ class BackPop():
             Full kick info array from COSMIC, or None if the phase was not reached
         '''
         # handle initial binary parameters first
+        # TODO: Generalise for some of these variables to be fixed
         m1 = params_in["m1"] 
         m2 = params_in["m2"]
         m2, m1 = np.sort([m1,m2],axis=0)
         tb = params_in["tb"] 
         e = params_in["e"]
-        # this is hardcoded for BH3... need to figure out how to specify fixed quantities..
+        # TODO: this is hardcoded for BH3... need to figure out how to specify fixed quantities..
         metallicity = 1.23e-4
         # set the other flags
         flags = self.set_flags(params_in)
@@ -206,9 +207,6 @@ class BackPop():
         bhspin = np.array([0.0,0.0])
         tphys = 0.0
         bkick = np.zeros(20)
-        bpp_index_out = 0
-        bcm_index_out = 0
-        kick_info_out = np.zeros(34)
         kstar = np.array([1,1])
         kick_info = np.zeros((2, 18))
 
@@ -239,59 +237,62 @@ class BackPop():
             return None, None, None
 
 
-def likelihood(rv, lower_bound, upper_bound, params_out, phase_select, x):
-    '''Calculate the log-likelihood of a binary given prior bounds and input parameters
-    using COSMIC to evolve the binary, select the phase of interest, and compare to
-    observed binary properties
+    def likelihood(self, rv, lower_bound, upper_bound, params_out, phase_select, x):
+        '''Calculate the log-likelihood of a binary given prior bounds and input parameters
+        using COSMIC to evolve the binary, select the phase of interest, and compare to
+        observed binary properties
 
-    Parameters
-    ----------
-    rv : scipy.stats.rv_continuous
-        A scipy.stats continuous random variable object representing the likelihood
-        function to evaluate the output parameters against
-    lower_bound : list
-        List of lower bounds for the physical parameters to enforce priors on
-    upper_bound : list
-        List of upper bounds for the physical parameters to enforce priors on
-    params_out : list
-        List of output parameters to return at the time of the selected phase
-    phase_select : str, optional
-        The phase to select the output parameters from. Default is 'BBH_merger'
-    x : dict
-        Dictionary of input parameters that will be sampled by Nautilus
-    
-    Returns
-    -------
-    ll : float
-        The log-likelihood of the binary given the input parameters and priors
-    bpp_flat : np.ndarray
-        Flattened array of the full BPP output from COSMIC
-    kick_flat : np.ndarray
-        Flattened array of the full kick info output from COSMIC
-    '''
+        Parameters
+        ----------
+        rv : scipy.stats.rv_continuous
+            A scipy.stats continuous random variable object representing the likelihood
+            function to evaluate the output parameters against
+        lower_bound : list
+            List of lower bounds for the physical parameters to enforce priors on
+        upper_bound : list
+            List of upper bounds for the physical parameters to enforce priors on
+        params_out : list
+            List of output parameters to return at the time of the selected phase
+        phase_select : str, optional
+            The phase to select the output parameters from. Default is 'BBH_merger'
+        x : dict
+            Dictionary of input parameters that will be sampled by Nautilus
+        
+        Returns
+        -------
+        ll : float
+            The log-likelihood of the binary given the input parameters and priors
+        bpp_flat : np.ndarray
+            Flattened array of the full BPP output from COSMIC
+        kick_flat : np.ndarray
+            Flattened array of the full kick info output from COSMIC
+        '''
 
-    # enforce limits on physical values for kicks
-    for i, name in enumerate(x):
-        val = x[name]
-        if name in ["theta1", "phi1", "omega1", "theta2", "phi2", "omega2"]:
-            if val < lower_bound[i] or val > upper_bound[i]:
-                # return invalid flattened arrays
-                return -np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float), np.full(np.prod(KICK_SHAPE), np.nan, dtype=float)
+        # enforce limits on physical values for kicks
+        for i, name in enumerate(x):
+            val = x[name]
+            if name in ["theta1", "phi1", "omega1", "theta2", "phi2", "omega2"]:
+                if val < lower_bound[i] or val > upper_bound[i]:
+                    # return invalid flattened arrays
+                    return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                            np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
 
-    # evolve the binary
-    result = evolv2(x, params_out, phase_select=phase_select)
-    # check result and calculate likelihood
-    if result[0] is None:
-        return -np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float), np.full(np.prod(KICK_SHAPE), np.nan, dtype=float)
-    ll = np.sum(rv.logpdf(result[0]))
+        # evolve the binary
+        result = self.evolv2(x, params_out, phase_select=phase_select)
+        # check result and calculate likelihood
+        if result[0] is None:
+            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
+        ll = np.sum(rv.logpdf(result[0]))
 
-    # flatten arrays and force dtype
-    bpp_flat = np.array(result[1], dtype=float).ravel()
-    kick_flat = np.array(result[2], dtype=float).ravel()
+        # flatten arrays and force dtype
+        bpp_flat = np.array(result[1], dtype=float).ravel()
+        kick_flat = np.array(result[2], dtype=float).ravel()
 
-    # check shapes
-    if bpp_flat.size != np.prod(BPP_SHAPE) or kick_flat.size != np.prod(KICK_SHAPE):
-        return -np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float), np.full(np.prod(KICK_SHAPE), np.nan, dtype=float)
-    
-    # else return the log-likelihood and flattened arrays
-    return ll, bpp_flat, kick_flat
+        # check shapes
+        if bpp_flat.size != np.prod(BPP_SHAPE) or kick_flat.size != np.prod(KICK_SHAPE):
+            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
+        
+        # else return the log-likelihood and flattened arrays
+        return ll, bpp_flat, kick_flat
