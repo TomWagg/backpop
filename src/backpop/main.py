@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.stats import multivariate_normal
 from argparse import ArgumentParser
 from configparser import ConfigParser
+import os.path
 
 from nautilus import Prior, Sampler
 
@@ -86,6 +87,8 @@ def set_evolvebin_flags(flags):
 
 def select_phase(bpp, phase_select='BBH_merger'):
     '''Select the rows of the BPP array corresponding to a given phase.
+
+    TODO: Allow custom masks based on different columns/operations/values
     
     Parameters
     ----------
@@ -298,64 +301,52 @@ def likelihood(rv, lower_bound, upper_bound, params_out, phase_select, x):
 
 
 if __name__ == "__main__":
-    
-    # First set up the commandline args
     parser = ArgumentParser()
-    parser.add_argument('--n_threads', help='pass the number of cores to use', type=int, default=1)
-    parser.add_argument('--n_eff', help='pass the number of effective points for Nautilus', type=int, default=10000)
-    parser.add_argument('--n_live', help='pass the number of live points for Nautilus', type=int, default=3000)
-    parser.add_argument('--verbose', help='supplies verbose argument to Nautilus', type=bool, default=True)
-    parser.add_argument('--filepath', help='path to output file', default="./")
-    parser.add_argument('--resume', help='restart file for Nautilus', type=bool, default=False)
+    parser.add_argument('-i', '--ini_file', help='Path to INI file', type=str, default="params.ini")
     args = parser.parse_args()
-   
 
-    # this should probably be an inifile...
-    #Porb: 115 +/- 5
-    #Eccentricity: 0.85 +/- 0.02
-    #Mass 1: 9.8 +/- 2
-    #Mass 2: 1 +/- 0.05
-    # Initializing the multivariate normal distribution for the prior
-    mean = np.array([9.8, 1, 3500.0, 0.85])
-    cov = np.array([[1**2, 0, 0, 0], [0, 0.05**2, 0, 0], [0, 0, 50**2, 0], [0, 0, 0, 0.02**2]])
-    rv = multivariate_normal(mean, cov)
-    #m1, m2, tb, e, alpha, vk1, theta1, phi1, omega1
-    m1lo = 10.0
-    m2lo = 0.8
-    tblo = 500.0
-    elo = 0.0
-    vklo = 0.0
-    thetalo = 0.0
-    philo = -90.0
-    omegalo = 0.0
-    
-    m1hi = 60.0
-    m2hi = 1.2
-    tbhi = 5000.0
-    ehi = 0.9
-    vkhi = 300.0
-    thetahi = 360.0
-    phihi = 90.0
-    omegahi = 360
-    
-    #m1, m2, logtb, e, alpha_1, vk1, theta1, phi1, omega1
-    param_names = ["m1", "m2", "tb", "e", "vk1", "theta1", "phi1", "omega1"]
-    lower_bound = np.array([m1lo, m2lo, tblo, elo, vklo, thetalo, philo, omegalo])
-    upper_bound = np.array([m1hi, m2hi, tbhi, ehi, vkhi, thetahi, phihi, omegahi])
-    
-    resume=True
-    
-    phase_select="BH_MS"
-    params_out = ["mass_1", "mass_2", "porb", "ecc"]
+    config = ConfigParser()
+    config.read(args.ini_file)
+    config_dict = {section: dict(config.items(section)) for section in config.sections()}
+    backpop_config = config_dict["backpop"]
+
+    obs = {
+        "mean": [],
+        "sigma": [],
+        "name": [],
+        "out_name": []
+    }
+    var = {
+        "min": [],
+        "max": [],
+        "name": [],
+    }
+    for k in config_dict:
+        if k.startswith("backpop.var::"):
+            var_name = k.split("backpop.var::")[-1]
+            var["name"].append(var_name)
+            var["min"].append(float(config_dict[k]["min"].strip()))
+            var["max"].append(float(config_dict[k]["max"].strip()))
+        if k.startswith("backpop.obs::"):
+            obs_name = k.split("backpop.obs::")[-1]
+            obs["name"].append(obs_name)
+            obs["mean"].append(float(config_dict[k]["mean"].strip()))
+            obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
+            obs["out_name"].append(config_dict[k]["out_name"].strip())
+            
+
+    rv = multivariate_normal(
+        mean=np.array(obs["mean"]),
+        cov=np.diag(np.array(obs["sigma"])**2)
+    )
     
     # Set up Nautilus prior
     prior = Prior()
-    for i in range(len(param_names)):
-        prior.add_parameter(param_names[i], dist=(lower_bound[i], upper_bound[i]))
+    for i in range(len(var["name"])):
+        prior.add_parameter(var["name"][i], dist=(var["min"][i], var["max"][i]))
     
-    num_threads = args.n_threads
-    if args.verbose:
-        print("using multiprocessing with " + str(num_threads) + " threads")
+    if backpop_config["verbose"]:
+        print(f"using multiprocessing with {backpop_config["n_threads"]} threads")
 
     # set up the blob dtype and Nautilus sampler    
     dtype = [('bpp', float, 35*len(BPP_COLUMNS)), ('kick_info', float, 2*len(KICK_COLUMNS))]
@@ -363,18 +354,16 @@ if __name__ == "__main__":
     sampler = Sampler(
         prior=prior, 
         likelihood=likelihood, 
-        n_live=args.n_live, 
-        pool=args.n_threads,
+        n_live=backpop_config["n_live"], 
+        pool=backpop_config["n_threads"],
         blobs_dtype=dtype,
-        filepath=args.filepath+'samples_out.hdf5', 
-        resume=args.resume,
-        likelihood_args=(rv, lower_bound, upper_bound, params_out, phase_select))
+        filepath=os.path.join(backpop_config["filepath"], 'samples_out.hdf5'), 
+        resume=backpop_config["resume"],
+        likelihood_args=(rv, var["min"], var["max"], obs["out_name"], backpop_config["phase_select"],)
+    )
 
-    sampler.run(n_eff=args.n_eff,verbose=args.verbose,discard_exploration=True)
+    sampler.run(n_eff=backpop_config["n_eff"], verbose=backpop_config["verbose"], discard_exploration=True)
     
     points, log_w, log_l, blobs = sampler.posterior(return_blobs=True)
-    
-    np.save(args.filepath+"points.npy", points)
-    np.save(args.filepath+"log_w.npy", log_w)
-    np.save(args.filepath+"log_l.npy", log_l)
-    np.save(args.filepath+"blobs.npy", blobs)
+    for label, val in zip(["points", "log_w", "log_l", "blobs"], [points, log_w, log_l, blobs]):
+        np.save(os.path.join(config_dict["backpop"]["filepath"], f"{label}.npy"), val)
