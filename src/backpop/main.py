@@ -1,20 +1,82 @@
 import numpy as np
-from cosmic import _evolvebin
 import pandas as pd
 
 from scipy.stats import multivariate_normal
-from argparse import ArgumentParser
 from configparser import ConfigParser
 import os.path
 
+from cosmic import _evolvebin
 from nautilus import Prior, Sampler
 
 from .consts import *
 
 
 class BackPop():
-    def __init__(self):
-        pass
+    def __init__(self, config_file='params.ini'):
+        self.config_file = config_file
+
+        config = ConfigParser()
+        config.read(self.config_file)
+        config_dict = {section: dict(config.items(section)) for section in config.sections()}
+        self.flags = config_dict["bse"]
+        self.config = config_dict["backpop"]
+
+        self.obs = {
+            "mean": [],
+            "sigma": [],
+            "name": [],
+            "out_name": []
+        }
+        self.var = {
+            "min": [],
+            "max": [],
+            "name": [],
+        }
+        for k in config_dict:
+            if k.startswith("backpop.var::"):
+                var_name = k.split("backpop.var::")[-1]
+                self.var["name"].append(var_name)
+                self.var["min"].append(float(config_dict[k]["min"].strip()))
+                self.var["max"].append(float(config_dict[k]["max"].strip()))
+            if k.startswith("backpop.obs::"):
+                obs_name = k.split("backpop.obs::")[-1]
+                self.obs["name"].append(obs_name)
+                self.obs["mean"].append(float(config_dict[k]["mean"].strip()))
+                self.obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
+                self.obs["out_name"].append(config_dict[k]["out_name"].strip())
+
+        self.rv = multivariate_normal(
+            mean=np.array(obs["mean"]),
+            cov=np.diag(np.array(obs["sigma"])**2)
+        )
+        
+        # Set up Nautilus prior
+        self.prior = Prior()
+        for i in range(len(var["name"])):
+            self.prior.add_parameter(var["name"][i], dist=(var["min"][i], var["max"][i]))
+    
+    def run_sampler(self):
+        if self.config["verbose"]:
+            print(f"Running sampling using multiprocessing with {backpop_config["n_threads"]} threads")
+    
+        self.sampler = Sampler(
+            prior=prior, 
+            likelihood=likelihood, 
+            n_live=self.config["n_live"], 
+            pool=self.config["n_threads"],
+            blobs_dtype=[('bpp', float, 35*len(BPP_COLUMNS)),
+                         ('kick_info', float, 2*len(KICK_COLUMNS))],
+            filepath=os.path.join(self.config["filepath"], 'samples_out.hdf5'), 
+            resume=self.config["resume"],
+            likelihood_args=(rv, var["min"], var["max"], obs["out_name"], self.config["phase_select"],)
+        )
+        sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
+    
+    def save_output(self):
+        points, log_w, log_l, blobs = self.sampler.posterior(return_blobs=True)
+        for label, val in zip(["points", "log_w", "log_l", "blobs"], [points, log_w, log_l, blobs]):
+            np.save(os.path.join(self.config["filepath"], f"{label}.npy"), val)
+
 
 
 def set_flags(params_in, defaults_file='cosmic_defaults.ini'):
@@ -298,72 +360,3 @@ def likelihood(rv, lower_bound, upper_bound, params_out, phase_select, x):
     
     # else return the log-likelihood and flattened arrays
     return ll, bpp_flat, kick_flat
-
-
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument('-i', '--ini_file', help='Path to INI file', type=str, default="params.ini")
-    args = parser.parse_args()
-
-    config = ConfigParser()
-    config.read(args.ini_file)
-    config_dict = {section: dict(config.items(section)) for section in config.sections()}
-    backpop_config = config_dict["backpop"]
-
-    obs = {
-        "mean": [],
-        "sigma": [],
-        "name": [],
-        "out_name": []
-    }
-    var = {
-        "min": [],
-        "max": [],
-        "name": [],
-    }
-    for k in config_dict:
-        if k.startswith("backpop.var::"):
-            var_name = k.split("backpop.var::")[-1]
-            var["name"].append(var_name)
-            var["min"].append(float(config_dict[k]["min"].strip()))
-            var["max"].append(float(config_dict[k]["max"].strip()))
-        if k.startswith("backpop.obs::"):
-            obs_name = k.split("backpop.obs::")[-1]
-            obs["name"].append(obs_name)
-            obs["mean"].append(float(config_dict[k]["mean"].strip()))
-            obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
-            obs["out_name"].append(config_dict[k]["out_name"].strip())
-            
-
-    rv = multivariate_normal(
-        mean=np.array(obs["mean"]),
-        cov=np.diag(np.array(obs["sigma"])**2)
-    )
-    
-    # Set up Nautilus prior
-    prior = Prior()
-    for i in range(len(var["name"])):
-        prior.add_parameter(var["name"][i], dist=(var["min"][i], var["max"][i]))
-    
-    if backpop_config["verbose"]:
-        print(f"using multiprocessing with {backpop_config["n_threads"]} threads")
-
-    # set up the blob dtype and Nautilus sampler    
-    dtype = [('bpp', float, 35*len(BPP_COLUMNS)), ('kick_info', float, 2*len(KICK_COLUMNS))]
- 
-    sampler = Sampler(
-        prior=prior, 
-        likelihood=likelihood, 
-        n_live=backpop_config["n_live"], 
-        pool=backpop_config["n_threads"],
-        blobs_dtype=dtype,
-        filepath=os.path.join(backpop_config["filepath"], 'samples_out.hdf5'), 
-        resume=backpop_config["resume"],
-        likelihood_args=(rv, var["min"], var["max"], obs["out_name"], backpop_config["phase_select"],)
-    )
-
-    sampler.run(n_eff=backpop_config["n_eff"], verbose=backpop_config["verbose"], discard_exploration=True)
-    
-    points, log_w, log_l, blobs = sampler.posterior(return_blobs=True)
-    for label, val in zip(["points", "log_w", "log_l", "blobs"], [points, log_w, log_l, blobs]):
-        np.save(os.path.join(config_dict["backpop"]["filepath"], f"{label}.npy"), val)

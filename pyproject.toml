@@ -51,3 +51,6 @@ dependencies = [
 
 [project.urls]
 "Repository" = "https://github.com/TomWagg/backpop"
+
+[project.scripts]
+backpop = "backpop.cli:main"
