@@ -37,21 +37,24 @@ def set_flags(params_in, defaults_file='cosmic_defaults.ini'):
     qcrit_array = np.zeros(16)
     qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
 
+    # update flags based on input params
     for param in params_in.keys():
-        # handle kicks
+        # create natal kick arrays for each star if necessary
         if param in ["vk1", "phi1", "theta1", "omega1", "vk2", "phi2", "theta2", "omega2"]:
             param_name = param[:-1]
             param_star = int(param[-1]) - 1
             natal_kick[param_star, NATAL_KICK_TRANSLATOR[param_name]] = params_in[param]
+        # same for qcrit_arrays
         elif param in qc_list:
             ind_dict = {}
             for k, v in zip(qc_list, range(0,10)):
                 ind_dict[v] = k
             qcrit_array[ind_dict[param]] = params_in[param]
+        # otherwise just set the flag
         else:
             flags[param] = params_in[param]
 
-
+    # if we set any of the arrays, update the flags
     if np.any(qcrit_array != 0.0):
         flags["qcrit_array"] = qcrit_array   
     if np.any(natal_kick != 0.0):
