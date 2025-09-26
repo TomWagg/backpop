@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from .backpop import BackPop
+from .main import BackPop
 
 def main():
     parser = ArgumentParser()
