@@ -13,15 +13,51 @@ import select
 
 
 class BackPop():
+    """Class to sample the joint distributions of initial binary parameters and binary interaction
+    assumptions using Nautilus and COSMIC.
+
+    Parameters
+    ----------
+    config_file : str, optional
+        Path to INI file containing configuration parameters. Default is 'params.ini'.
+
+    Attributes
+    ----------
+    config_file : str
+        Path to INI file containing configuration parameters.
+    flags : dict
+        Dictionary of COSMIC flags to be set before evolving each binary.
+    config : dict
+        Dictionary of backpop configuration parameters.
+    obs : dict
+        Dictionary of observational constraints including means, sigmas, names, and output names. Names
+        correspond to the internal COSMIC fortran names, while out_names correspond to the names in the output
+        BPP array.
+    var : dict
+        Dictionary of parameters to vary including min, max, and names. Names correspond to the COSMIC fortran
+        variable names.
+    fixed : dict
+        Dictionary of fixed parameters and their values. Names correspond to the COSMIC fortran variable names
+    rv : scipy.stats.rv_continuous
+        A scipy.stats continuous random variable object representing the likelihood function to evaluate
+        the output parameters against.
+    prior : nautilus.Prior
+        Nautilus Prior object representing the prior distributions of the parameters to be varied.
+    sampler : nautilus.Sampler
+        Nautilus Sampler object used to perform the sampling.
+    """
     def __init__(self, config_file='params.ini'):
         self.config_file = config_file
 
+        # parse the configuration ini file, set flags and config
         config = ConfigParser()
         config.read(self.config_file)
         config_dict = {section: dict(config.items(section)) for section in config.sections()}
         self.flags = config_dict["bse"]
+        self.init_flags = self.flags.copy()
         self.config = config_dict["backpop"]
 
+        # convert ini file inputs to observations, variables, and fixed parameters
         self.obs = {
             "mean": [],
             "sigma": [],
@@ -50,17 +86,21 @@ class BackPop():
                 fixed_name = k.split("backpop.fixed::")[-1]
                 self.fixed[fixed_name] = float(config_dict[k]["value"].strip())
 
+        # create a scipy rv object for the likelihood
+        # NOTE: currently assumes independent Gaussians (no correlated noise)
         self.rv = multivariate_normal(
             mean=np.array(self.obs["mean"]),
             cov=np.diag(np.array(self.obs["sigma"])**2)
         )
         
-        # Set up Nautilus prior
+        # initialise the Nautilus prior
         self.prior = Prior()
         for i in range(len(self.var["name"])):
             self.prior.add_parameter(self.var["name"][i], dist=(self.var["min"][i], self.var["max"][i]))
     
     def run_sampler(self):
+        """Run the Nautilus sampler to sample the joint distribution of initial binary parameters
+        and binary interaction assumptions."""
         if self.config["verbose"]:
             print(f"Running sampling using multiprocessing with {self.config["n_threads"]} threads")
     
@@ -79,65 +119,62 @@ class BackPop():
         self.sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
     
     def save_output(self):
+        """Save the output from the Nautilus sampler to .npy files."""
         points, log_w, log_l, blobs = self.sampler.posterior(return_blobs=True)
         for label, val in zip(["points", "log_w", "log_l", "blobs"], [points, log_w, log_l, blobs]):
             np.save(os.path.join(self.config["filepath"], f"{label}.npy"), val)
 
-
-
-    def set_flags(self, params_in):
-        '''create a Dictionary of COSMIC flags that updated defaults with input parameters
-        '''
-        natal_kick = np.zeros((2,5))
-        qcrit_array = np.zeros(16)
-        qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
-
-        # update flags based on input params
-        for param in params_in.keys():
-            # create natal kick arrays for each star if necessary
-            if param in ["vk1", "phi1", "theta1", "omega1", "vk2", "phi2", "theta2", "omega2"]:
-                param_name = param[:-1]
-                param_star = int(param[-1]) - 1
-                natal_kick[param_star, NATAL_KICK_TRANSLATOR[param_name]] = params_in[param]
-            # same for qcrit_arrays
-            elif param in qc_list:
-                ind_dict = {}
-                for k, v in zip(qc_list, range(0,10)):
-                    ind_dict[v] = k
-                qcrit_array[ind_dict[param]] = params_in[param]
-            # otherwise just set the flag
-            else:
-                self.flags[param] = params_in[param]
-
-        # if we set any of the arrays, update the flags
-        if np.any(qcrit_array != 0.0):
-            self.flags["qcrit_array"] = qcrit_array   
-        if np.any(natal_kick != 0.0):
-            self.flags["natal_kick_array"] = natal_kick
-
-
-    def set_evolvebin_flags(self):
-        '''Set the flags in the _evolvebin Fortran module from a dictionary of flags
+    def likelihood(self, x):
+        '''Calculate the log-likelihood of a binary.
         
+        Calculate the log-likelihood of a binary given prior bounds and input parameters
+        using COSMIC to evolve the binary, select the phase of interest, and compare to
+        observed binary properties.
+
         Parameters
         ----------
-        flags : dict
-            Dictionary of COSMIC flags to be passed to COSMIC
+        x : dict
+            Dictionary of input parameters that will be sampled by Nautilus
         
         Returns
         -------
-        None
+        ll : float
+            The log-likelihood of the binary given the input parameters and priors
+        bpp_flat : np.ndarray
+            Flattened array of the full BPP output from COSMIC
+        kick_flat : np.ndarray
+            Flattened array of the full kick info output from COSMIC
         '''
-        # the following is equivalent to _evolvebin.windvars.neta = flags["neta"], etc
-        for g in FLAG_GROUPS:
-            for k in FLAG_GROUPS[g]:
-                if k not in self.flags:
-                    raise ValueError(f"flag {k} not found in flags dictionary")
-                getattr(getattr(_evolvebin, g), k) = self.flags[k]
-        return None
 
+        # enforce limits on physical values for kicks
+        for i, name in enumerate(x):
+            val = x[name]
+            if val < self.var["min"][i] or val > self.var["max"][i]:
+                # return invalid flattened arrays
+                return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                        np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
 
-    def evolv2(self, params_in, params_out, phase_select='BBH_merger'):
+        # evolve the binary
+        result = self.evolv2(x, self.obs["out_name"], phase_select=self.phase_select)
+        # check result and calculate likelihood
+        if result[0] is None:
+            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
+        ll = np.sum(self.rv.logpdf(result[0]))
+
+        # flatten arrays and force dtype
+        bpp_flat = np.array(result[1], dtype=float).ravel()
+        kick_flat = np.array(result[2], dtype=float).ravel()
+
+        # check shapes
+        if bpp_flat.size != np.prod(BPP_SHAPE) or kick_flat.size != np.prod(KICK_SHAPE):
+            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
+        
+        # else return the log-likelihood and flattened arrays
+        return ll, bpp_flat, kick_flat
+    
+    def evolv2(self, params_in):
         '''Evolve a binary with COSMIC given input parameters and return the output parameters
         at the time of the first BBH merger, as well as the full BPP and kick arrays.
 
@@ -145,11 +182,6 @@ class BackPop():
         ----------
         params_in : dict
             Dictionary of input parameters that will be sampled by Nautilus
-        params_out : list
-            List of output parameters to return at the time of the selected phase
-        phase_select : str, optional
-            The phase to select the output parameters from. Currently only 'BBH_merger' is
-            implemented. Default is 'BBH_merger'.
         
         Returns
         -------
@@ -234,70 +266,57 @@ class BackPop():
                                 columns=KICK_COLUMNS,
                                 index=kick_info_arrays[:, -1].astype(int))
 
-        out = select.select_phase(bpp, phase_select=phase_select)
+        out = select.select_phase(bpp, phase_select=self.phase_select)
 
         if len(out) > 0:
-            return out[params_out].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
+            return out[self.obs["out_name"]].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
         else:
             return None, None, None
 
 
-    def likelihood(self, rv, lower_bound, upper_bound, params_out, phase_select, x):
-        '''Calculate the log-likelihood of a binary given prior bounds and input parameters
-        using COSMIC to evolve the binary, select the phase of interest, and compare to
-        observed binary properties
+    def set_flags(self, params_in):
+        '''update dictionary of COSMIC flags with input parameters
+        '''
+        natal_kick = np.zeros((2,5))
+        qcrit_array = np.zeros(16)
+        qc_list = ["qMSlo", "qMS", "qHG", "qGB", "qCHeB", "qAGB", "qTPAGB", "qHeMS", "qHeGB", "qHeAGB"]
 
+        # update flags based on input params
+        for param in params_in.keys():
+            # create natal kick arrays for each star if necessary
+            if param in ["vk1", "phi1", "theta1", "omega1", "vk2", "phi2", "theta2", "omega2"]:
+                param_name = param[:-1]
+                param_star = int(param[-1]) - 1
+                natal_kick[param_star, NATAL_KICK_TRANSLATOR[param_name]] = params_in[param]
+            # same for qcrit_arrays
+            elif param in qc_list:
+                ind_dict = {}
+                for k, v in zip(qc_list, range(0,10)):
+                    ind_dict[v] = k
+                qcrit_array[ind_dict[param]] = params_in[param]
+            # otherwise just set the flag
+            else:
+                self.flags[param] = params_in[param]
+
+        # if we set any of the arrays, update the flags
+        if np.any(qcrit_array != 0.0):
+            self.flags["qcrit_array"] = qcrit_array   
+        if np.any(natal_kick != 0.0):
+            self.flags["natal_kick_array"] = natal_kick
+
+
+    def set_evolvebin_flags(self):
+        '''Set the flags in the _evolvebin Fortran module from a dictionary of flags
+        
         Parameters
         ----------
-        rv : scipy.stats.rv_continuous
-            A scipy.stats continuous random variable object representing the likelihood
-            function to evaluate the output parameters against
-        lower_bound : list
-            List of lower bounds for the physical parameters to enforce priors on
-        upper_bound : list
-            List of upper bounds for the physical parameters to enforce priors on
-        params_out : list
-            List of output parameters to return at the time of the selected phase
-        phase_select : str, optional
-            The phase to select the output parameters from. Default is 'BBH_merger'
-        x : dict
-            Dictionary of input parameters that will be sampled by Nautilus
-        
-        Returns
-        -------
-        ll : float
-            The log-likelihood of the binary given the input parameters and priors
-        bpp_flat : np.ndarray
-            Flattened array of the full BPP output from COSMIC
-        kick_flat : np.ndarray
-            Flattened array of the full kick info output from COSMIC
+        flags : dict
+            Dictionary of COSMIC flags to be passed to COSMIC
         '''
-
-        # enforce limits on physical values for kicks
-        for i, name in enumerate(x):
-            val = x[name]
-            if name in ["theta1", "phi1", "omega1", "theta2", "phi2", "omega2"]:
-                if val < lower_bound[i] or val > upper_bound[i]:
-                    # return invalid flattened arrays
-                    return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
-                            np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
-
-        # evolve the binary
-        result = self.evolv2(x, params_out, phase_select=phase_select)
-        # check result and calculate likelihood
-        if result[0] is None:
-            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
-                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
-        ll = np.sum(rv.logpdf(result[0]))
-
-        # flatten arrays and force dtype
-        bpp_flat = np.array(result[1], dtype=float).ravel()
-        kick_flat = np.array(result[2], dtype=float).ravel()
-
-        # check shapes
-        if bpp_flat.size != np.prod(BPP_SHAPE) or kick_flat.size != np.prod(KICK_SHAPE):
-            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
-                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
-        
-        # else return the log-likelihood and flattened arrays
-        return ll, bpp_flat, kick_flat
+        # the following is equivalent to _evolvebin.windvars.neta = flags["neta"], etc
+        for g in FLAG_GROUPS:
+            for k in FLAG_GROUPS[g]:
+                if k not in self.flags:
+                    raise ValueError(f"flag {k} not found in flags dictionary")
+                getattr(getattr(_evolvebin, g), k) = self.flags[k]
+        return None
