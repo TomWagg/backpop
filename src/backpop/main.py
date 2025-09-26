@@ -9,6 +9,7 @@ from cosmic import _evolvebin
 from nautilus import Prior, Sampler
 
 from .consts import *
+from .files import parse_inifile
 import select
 
 
@@ -50,41 +51,8 @@ class BackPop():
         self.config_file = config_file
 
         # parse the configuration ini file, set flags and config
-        config = ConfigParser()
-        config.read(self.config_file)
-        config_dict = {section: dict(config.items(section)) for section in config.sections()}
-        self.flags = config_dict["bse"]
+        self.config, self.flags, self.obs, self.var, self.fixed = parse_inifile(self.config_file)
         self.init_flags = self.flags.copy()
-        self.config = config_dict["backpop"]
-
-        # convert ini file inputs to observations, variables, and fixed parameters
-        self.obs = {
-            "mean": [],
-            "sigma": [],
-            "name": [],
-            "out_name": []
-        }
-        self.var = {
-            "min": [],
-            "max": [],
-            "name": [],
-        }
-        self.fixed = {}
-        for k in config_dict:
-            if k.startswith("backpop.var::"):
-                var_name = k.split("backpop.var::")[-1]
-                self.var["name"].append(var_name)
-                self.var["min"].append(float(config_dict[k]["min"].strip()))
-                self.var["max"].append(float(config_dict[k]["max"].strip()))
-            if k.startswith("backpop.obs::"):
-                obs_name = k.split("backpop.obs::")[-1]
-                self.obs["name"].append(obs_name)
-                self.obs["mean"].append(float(config_dict[k]["mean"].strip()))
-                self.obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
-                self.obs["out_name"].append(config_dict[k]["out_name"].strip())
-            if k.startswith("backpop.fixed::"):
-                fixed_name = k.split("backpop.fixed::")[-1]
-                self.fixed[fixed_name] = float(config_dict[k]["value"].strip())
 
         # create a scipy rv object for the likelihood
         # NOTE: currently assumes independent Gaussians (no correlated noise)
@@ -102,7 +70,7 @@ class BackPop():
         """Run the Nautilus sampler to sample the joint distribution of initial binary parameters
         and binary interaction assumptions."""
         if self.config["verbose"]:
-            print(f"Running sampling using multiprocessing with {self.config["n_threads"]} threads")
+            print(f"Running sampling using multiprocessing with {self.config['n_threads']} threads")
     
         self.sampler = Sampler(
             prior=self.prior, 
@@ -112,9 +80,7 @@ class BackPop():
             blobs_dtype=[('bpp', float, 35*len(BPP_COLUMNS)),
                          ('kick_info', float, 2*len(KICK_COLUMNS))],
             filepath=os.path.join(self.config["filepath"], 'samples_out.hdf5'), 
-            resume=self.config["resume"],
-            likelihood_args=(self.rv, self.var["min"], self.var["max"],
-                             self.obs["out_name"], self.config["phase_select"],)
+            resume=self.config["resume"]
         )
         self.sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
     
@@ -155,7 +121,7 @@ class BackPop():
                         np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
 
         # evolve the binary
-        result = self.evolv2(x, self.obs["out_name"], phase_select=self.phase_select)
+        result = self.evolv2(x)
         # check result and calculate likelihood
         if result[0] is None:
             return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
@@ -318,5 +284,5 @@ class BackPop():
             for k in FLAG_GROUPS[g]:
                 if k not in self.flags:
                     raise ValueError(f"flag {k} not found in flags dictionary")
-                getattr(getattr(_evolvebin, g), k) = self.flags[k]
+                setattr(getattr(_evolvebin, g), k, self.flags[k])
         return None
