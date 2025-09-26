@@ -10,7 +10,7 @@ from nautilus import Prior, Sampler
 
 from .consts import *
 from .files import parse_inifile
-import select
+from .phase import select_phase
 
 
 class BackPop():
@@ -232,7 +232,7 @@ class BackPop():
                                 columns=KICK_COLUMNS,
                                 index=kick_info_arrays[:, -1].astype(int))
 
-        out = select.select_phase(bpp, phase_select=self.phase_select)
+        out = select_phase(bpp, phase_select=self.config["phase_select"])
 
         if len(out) > 0:
             return out[self.obs["out_name"]].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
