@@ -44,6 +44,10 @@ def select_phase(bpp, phase_select='BBH_merger'):
     elif phase_select == "WD_GS":
         out = bpp.loc[((bpp.kstar_1.isin([10,11,12])) & (bpp.kstar_2 == 3) & (bpp.sep > 0)) |
                       ((bpp.kstar_1 == 3) & (bpp.kstar_2.isin([10,11,12])) & (bpp.sep > 0))]
+    elif phase_select == "HG_MT_MS":
+        out = bpp.loc[((bpp.kstar_1 == 2) & (bpp.kstar_2 <= 1) & (bpp.sep > 0) & (bpp.evol_type == 3)) |
+                      ((bpp.kstar_1 <= 1) & (bpp.kstar_2 == 2) & (bpp.sep > 0) & (bpp.evol_type == 3))]
+
     else:
         raise ValueError("you've not specified one of the available choices for backpop stages. choose from: BNS_merger,NSBH_merger,BBH_merger,BH_MS,NS_MS,WD_MS,BH_GS,NS_GS,WD_GS")
     
