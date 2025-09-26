@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling >= 1.26"]
-build-backend = "hatchling.build"
+requires = ["setuptools >= 77.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = ["version"]
