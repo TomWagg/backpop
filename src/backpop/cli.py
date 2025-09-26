@@ -8,7 +8,6 @@ def main():
 
     bp = BackPop(config_file=args.ini_file)
     bp.run_sampler()
-    bp.save_output()
 
 if __name__ == "__main__":
     main()

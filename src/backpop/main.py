@@ -82,9 +82,7 @@ class BackPop():
             resume=self.config["resume"]
         )
         self.sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
-    
-    def save_output(self):
-        """Save the output from the Nautilus sampler to .npy files."""
+
         points, log_w, log_l, blobs = self.sampler.posterior(return_blobs=True)
         for label, val in zip(["points", "log_w", "log_l", "blobs"], [points, log_w, log_l, blobs]):
             np.save(os.path.join(self.config["filepath"], f"{label}.npy"), val)
@@ -123,6 +121,7 @@ class BackPop():
         result = self.evolv2(x)
         # check result and calculate likelihood
         if result[0] is None:
+            # print("No result!!")
             return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
                     np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
         ll = np.sum(self.rv.logpdf(result[0]))
@@ -132,9 +131,11 @@ class BackPop():
         kick_flat = np.array(result[2], dtype=float).ravel()
 
         # check shapes
-        if bpp_flat.size != np.prod(BPP_SHAPE) or kick_flat.size != np.prod(KICK_SHAPE):
-            return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
-                    np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
+        # if bpp_flat.size != np.prod(BPP_SHAPE) or kick_flat.size != np.prod(KICK_SHAPE):
+        #     print(result[1].shape, result[2].shape, BPP_SHAPE, KICK_SHAPE)
+        #     raise ValueError("BPP or kick array shape is incorrect")
+        #     return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+        #             np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
         
         # else return the log-likelihood and flattened arrays
         return ll, bpp_flat, kick_flat
@@ -220,10 +221,11 @@ class BackPop():
                                                                      p["bhspin"], tphys, zpars,
                                                                      bkick, kick_info)
 
-        bpp = _evolvebin.binary.bpp[:bpp_index, :n_col_bpp].copy()
-        _evolvebin.binary.bpp[:bpp_index, :n_col_bpp] = np.zeros(bpp.shape)
-        bcm = _evolvebin.binary.bcm[:bcm_index, :n_col_bcm].copy()
-        _evolvebin.binary.bcm[:bcm_index, :n_col_bcm] = np.zeros(bcm.shape)
+        bpp = _evolvebin.binary.bpp[:35, :n_col_bpp].copy()
+        _evolvebin.binary.bpp[:bpp_index, :n_col_bpp] = np.zeros((bpp_index, n_col_bpp))
+        bcm = _evolvebin.binary.bcm[:35, :n_col_bcm].copy()
+        _evolvebin.binary.bcm[:bcm_index, :n_col_bcm] = np.zeros((bcm_index, n_col_bcm))
+        # print(bpp.shape)
 
         bpp = pd.DataFrame(bpp, columns=BPP_COLUMNS)
 
@@ -234,6 +236,7 @@ class BackPop():
         out = select_phase(bpp, phase_select=self.config["phase_select"])
 
         if len(out) > 0:
+            # print("FOUND ONE!")
             return out[self.obs["out_name"]].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
         else:
             return None, None, None
