@@ -9,7 +9,7 @@ from cosmic import _evolvebin
 from nautilus import Prior, Sampler
 
 from .consts import *
-import .select
+import select
 
 
 class BackPop():
@@ -33,6 +33,7 @@ class BackPop():
             "max": [],
             "name": [],
         }
+        self.fixed = {}
         for k in config_dict:
             if k.startswith("backpop.var::"):
                 var_name = k.split("backpop.var::")[-1]
@@ -45,6 +46,9 @@ class BackPop():
                 self.obs["mean"].append(float(config_dict[k]["mean"].strip()))
                 self.obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
                 self.obs["out_name"].append(config_dict[k]["out_name"].strip())
+            if k.startswith("backpop.fixed::"):
+                fixed_name = k.split("backpop.fixed::")[-1]
+                self.fixed[fixed_name] = float(config_dict[k]["value"].strip())
 
         self.rv = multivariate_normal(
             mean=np.array(self.obs["mean"]),
@@ -62,7 +66,7 @@ class BackPop():
     
         self.sampler = Sampler(
             prior=self.prior, 
-            likelihood=likelihood, 
+            likelihood=self.likelihood, 
             n_live=self.config["n_live"], 
             pool=self.config["n_threads"],
             blobs_dtype=[('bpp', float, 35*len(BPP_COLUMNS)),
@@ -157,18 +161,23 @@ class BackPop():
         kick_info : np.ndarray or None
             Full kick info array from COSMIC, or None if the phase was not reached
         '''
-        # handle initial binary parameters first
-        # TODO: Generalise for some of these variables to be fixed
-        m1 = params_in["m1"] 
-        m2 = params_in["m2"]
+        # handle initial binary parameters first, ensure all have been provided somewhere
+        for param in ["m1", "m2", "tb", "e", "metallicity"]:
+            if param not in params_in and param not in self.fixed:
+                raise ValueError(f"You must provide an input value for {param} "
+                                 "either as a variable or fixed parameter")
+            
+        # set values for the evolvebin call
+        m1 = params_in["m1"] if "m1" in params_in else self.fixed["m1"]
+        m2 = params_in["m2"] if "m2" in params_in else self.fixed["m2"]
         m2, m1 = np.sort([m1,m2],axis=0)
-        tb = params_in["tb"] 
-        e = params_in["e"]
-        # TODO: this is hardcoded for BH3... need to figure out how to specify fixed quantities..
-        metallicity = 1.23e-4
+        tb = params_in["tb"] if "tb" in params_in else self.fixed["tb"]
+        e = params_in["e"] if "e" in params_in else self.fixed["e"]
+        metallicity = params_in["metallicity"] if "metallicity" in params_in else self.fixed["metallicity"]
+
         # set the other flags
-        flags = self.set_flags(params_in)
-        self.set_evolvebin_flags(flags)
+        self.set_flags(params_in)
+        self.set_evolvebin_flags()
         
         bpp_columns = BPP_COLUMNS
         bcm_columns = BCM_COLUMNS
@@ -185,50 +194,46 @@ class BackPop():
         _evolvebin.col.col_inds_bpp = col_inds_bpp
         _evolvebin.col.n_col_bcm = n_col_bcm
         _evolvebin.col.col_inds_bcm = col_inds_bcm
+
+        # most inputs start as a pair of zeros
+        pair_vars = ["epoch", "ospin", "rad", "lumin", "massc", "radc",
+                     "menv", "renv", "B_0", "bacc", "tacc", "tms", "bhspin"]
+        p = {var: np.zeros(2) for var in pair_vars}
+
+        # masses and kstars are actually set
+        p["mass"] = np.array([m1, m2])
+        p["mass0"] = np.array([m1, m2])
+        p["kstar"] = np.array([1, 1])
         
         # setup the inputs for _evolvebin
         zpars = np.zeros(20)
-        mass = np.array([m1,m2])
-        mass0 = np.array([m1,m2])
-        epoch = np.array([0.0,0.0])
-        ospin = np.array([0.0,0.0])
         tphysf = 13700.0
         dtp = 0.0
-        rad = np.array([0.0,0.0])
-        lumin = np.array([0.0,0.0])
-        massc = np.array([0.0,0.0])
-        radc = np.array([0.0,0.0])
-        menv = np.array([0.0,0.0])
-        renv = np.array([0.0,0.0])
-        B_0 = np.array([0.0,0.0])
-        bacc = np.array([0.0,0.0])
-        tacc = np.array([0.0,0.0])
-        tms = np.array([0.0,0.0])
-        bhspin = np.array([0.0,0.0])
         tphys = 0.0
         bkick = np.zeros(20)
-        kstar = np.array([1,1])
         kick_info = np.zeros((2, 18))
 
+        # run COSMIC!
+        [bpp_index, bcm_index, kick_info_arrays] = _evolvebin.evolv2(p["kstar"], p["mass"], tb, e,
+                                                                     metallicity, tphysf, dtp, p["mass0"],
+                                                                     p["rad"], p["lumin"], p["massc"],
+                                                                     p["radc"], p["menv"], p["renv"],
+                                                                     p["ospin"], p["B_0"], p["bacc"],
+                                                                     p["tacc"], p["epoch"], p["tms"],
+                                                                     p["bhspin"], tphys, zpars,
+                                                                     bkick, kick_info)
 
-        [bpp_index, bcm_index, kick_info_arrays] = _evolvebin.evolv2(kstar,mass,tb,e,metallicity,tphysf,
-                                                            dtp,mass0,rad,lumin,massc,radc,
-                                                            menv,renv,ospin,B_0,bacc,tacc,epoch,tms,
-                                                            bhspin,tphys,zpars,bkick,kick_info)
-        
         bpp = _evolvebin.binary.bpp[:bpp_index, :n_col_bpp].copy()
         _evolvebin.binary.bpp[:bpp_index, :n_col_bpp] = np.zeros(bpp.shape)
         bcm = _evolvebin.binary.bcm[:bcm_index, :n_col_bcm].copy()
         _evolvebin.binary.bcm[:bcm_index, :n_col_bcm] = np.zeros(bcm.shape)
-        
-        
+
         bpp = pd.DataFrame(bpp, columns=BPP_COLUMNS)
-        
-    
+
         kick_info = pd.DataFrame(kick_info_arrays,
                                 columns=KICK_COLUMNS,
                                 index=kick_info_arrays[:, -1].astype(int))
-        
+
         out = select.select_phase(bpp, phase_select=phase_select)
 
         if len(out) > 0:
