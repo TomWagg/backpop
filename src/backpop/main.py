@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from scipy.stats import multivariate_normal
-from configparser import ConfigParser
 import os.path
 
 from cosmic import _evolvebin
