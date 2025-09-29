@@ -109,7 +109,8 @@ class BackPop():
             Flattened array of the full kick info output from COSMIC
         '''
 
-        # enforce limits on physical values for kicks
+        # enforce limits on physical values
+        # TODO: check with Katie if this is necessary with Nautilus priors
         for i, name in enumerate(x):
             val = x[name]
             if val < self.var["min"][i] or val > self.var["max"][i]:
@@ -233,7 +234,7 @@ class BackPop():
                                 columns=KICK_COLUMNS,
                                 index=kick_info_arrays[:, -1].astype(int))
 
-        out = select_phase(bpp, phase_select=self.config["phase_select"])
+        out = select_phase(bpp, condition=self.config["phase_condition"])
 
         if len(out) > 0:
             # print("FOUND ONE!")
