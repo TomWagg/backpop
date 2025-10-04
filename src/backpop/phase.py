@@ -280,8 +280,8 @@ def select_phase(bpp, condition):
     >>> # select all binary neutron star mergers
     >>> bns = select_phase(bpp, 'BNS_merger')
 
-    >>> # select all binaries where either star is a main sequence star with teff > 5000 K
-    >>> ms_hot = select_phase(bpp, '(teff_1 > 5000 & kstar_1 in [0,1]) | (teff_2 > 5000 & kstar_2 in [0,1])')
+    >>> # select all binaries where either star is a main sequence star with teff > 50000 K
+    >>> ms_hot = select_phase(bpp, '(teff_1 > 50000 & kstar_1 in [0,1]) | (teff_2 > 50000 & kstar_2 in [0,1])')
 
     >>> # select all binaries with eccentricity > 0.9 and separation < 10 Rsun
     >>> ecc_sep = select_phase(bpp, 'ecc > 0.9 & sep < 10')
