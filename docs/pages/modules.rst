@@ -10,6 +10,9 @@ then you can also use the search box above!
     :caption: Modules
 
     ../modules/main
+    ../modules/phase
+    ../modules/files
+    ../modules/consts
 
 .. toctree::
     :caption: Changelog
