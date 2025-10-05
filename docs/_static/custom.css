@@ -4,6 +4,12 @@
     --backpop-secondary: #535abd;
 }
 
+#COSMIC-frame {
+    width: 100%;
+    height: 500px;
+    border: none;
+}
+
 .md-header-nav__source {
     width: auto !important;
     padding-right: 0 !important;
