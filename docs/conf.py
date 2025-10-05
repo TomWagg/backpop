@@ -138,8 +138,7 @@ html_theme_options = {
     'version_info': {'release': "", 'dev': "latest"},
 
     "heroes": {
-        "index": "A responsive Material Design theme for Sphinx sites.",
-        "customization": "Configuration options to personalize your site.",
+        "index": "BackPop: A tool to sample the joint distributions of initial binary parameters and binary interaction assumptions",
     },
 
     'nav_links': [
@@ -221,4 +220,4 @@ def linkcode_resolve(domain, info):
     # if you can't find it in the file then just link to the correct file
     except Exception:
         filename = info['module'].replace('.', '/') + '.py'
-    return "https://github.com/TomWagg/backpop/blob/main/{}".format(filename)
+    return "https://github.com/TomWagg/backpop/blob/main/src/{}".format(filename)
