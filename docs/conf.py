@@ -103,7 +103,6 @@ html_theme_options = {
     "features": [
         'content.code.copy',
         'content.tooltips',
-        'toc.integrate',
         'navigation.expand',
         'navigation.footer',
         'header.autohide',
@@ -135,7 +134,8 @@ html_theme_options = {
     # Set the repo location to get a badge with stats
     'repo_url': 'https://github.com/TomWagg/BackPop',
 
-    'version_dropdown': True,
+    'version_dropdown': False,
+    'toc_title_is_page_title': True,
 
     "social": [
         {
