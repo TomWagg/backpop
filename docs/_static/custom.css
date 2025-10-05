@@ -27,6 +27,24 @@
     margin-right: 0.5rem !important;
 }
 
+.md-sidebar--primary {
+    border-right: 1px solid #f0f0f0 !important;
+}
+
+.md-sidebar--secondary {
+    border-left: 1px solid #f0f0f0 !important;
+}
+
+@media only screen and (min-width:88.25em) {
+    .md-sidebar--secondary {
+        margin-left: 74rem
+    }
+    [dir=rtl] .md-sidebar--secondary {
+        margin-right: 74rem;
+        margin-left: 0
+    }
+}
+
 button[data-md-color-primary=indigo] {
     background-color: var(--backpop-primary) !important;
 }
