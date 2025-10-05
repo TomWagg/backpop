@@ -35,6 +35,7 @@ copyright = '{0}, {1}'.format(datetime.datetime.now().year, author)
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx_immaterial",
     "sphinx.ext.mathjax",
     "matplotlib.sphinxext.plot_directive",
     "nbsphinx",
@@ -43,25 +44,13 @@ extensions = [
     'sphinx_automodapi.smart_resolver',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
-    'numpydoc',
+    'sphinx.ext.napoleon',
     'sphinxcontrib.bibtex',
     'sphinx.ext.intersphinx',
-    'sphinx_copybutton',
+    # 'sphinx_copybutton',
     'sphinx.ext.linkcode',
-    # 'sphinx_gallery.gen_gallery',
     'sphinx_togglebutton'
 ]
-
-# sphinx_gallery_conf = {
-#     'examples_dirs': '../examples',   # path to your example scripts
-#     'gallery_dirs': 'auto_examples',  # path to where to save gallery generated output
-#     'reference_url': {
-#         'sphinx_gallery': None,
-#     },
-#     'download_all_examples': False,
-#     'show_signature': False,
-#     'matplotlib_animations': True
-# }
 
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
@@ -106,45 +95,58 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_material'
+html_theme = 'sphinx_immaterial'
 html_logo = '_static/backpop.png'
 
 html_theme_options = {
 
-    # Set the name of the project to appear in the navigation.
-    'nav_title': 'BackPop',
+    "features": [
+        'content.code.copy',
+        'content.tooltips',
+        'toc.integrate',
+        'navigation.expand',
+        'navigation.footer',
+        'header.autohide',
+    ],
 
-    # Specify a base_url used to generate sitemap.xml. If not
-    # specified, then no sitemap will be built.
-    'base_url': 'https://project.github.io/project',
-
-    # Set the color and the accent color
-    'theme_color': '074662',
-    'color_primary': 'indigo',
-    'color_accent': 'red',
+    "palette": [
+        {
+            "media": "(prefers-color-scheme: light)",
+            "scheme": "default",
+            "primary": "indigo",
+            "accent": "red",
+            "toggle": {
+                "icon": "material/weather-sunny",
+                "name": "Switch to dark mode",
+            },
+        },
+        {
+            "media": "(prefers-color-scheme: dark)",
+            "scheme": "slate",
+            "primary": "indigo",
+            "accent": "red",
+            "toggle": {
+                "icon": "material/weather-night",
+                "name": "Switch to light mode",
+            },
+        },
+    ],
 
     # Set the repo location to get a badge with stats
-    'repo_url': 'https://github.com/COSMIC-popsynth/COSMIC/',
-    'repo_name': 'BackPop',
-    'repo_type': 'github',
+    'repo_url': 'https://github.com/TomWagg/BackPop',
 
-    # Visible levels of the global TOC; -1 means unlimited
-    'globaltoc_depth': -1,
-    # If False, expand all TOC entries
-    'globaltoc_collapse': False,
+    'version_dropdown': True,
 
-    'master_doc': False,
-    'version_dropdown': False,
-    'version_info': {'release': "", 'dev': "latest"},
-
-    "heroes": {
-        "index": "BackPop: A tool to sample the joint distributions of initial binary parameters and binary interaction assumptions",
-    },
-
-    'nav_links': [
-        {'href': 'index', 'title': 'Home', 'internal': True},
-        {'href': 'pages/install', 'title': 'Install', 'internal': True},
-        {'href': 'pages/tutorials', 'title': 'Tutorials', 'internal': True},
+    "social": [
+        {
+            "icon": "fontawesome/brands/github",
+            "link": "https://github.com/TomWagg/BackPop",
+            "name": "Source on github.com",
+        },
+        {
+            "icon": "fontawesome/brands/python",
+            "link": "https://pypi.org/project/BackPop/",
+        },
     ],
 }
 
@@ -152,10 +154,10 @@ html_last_updated_fmt = "%Y %b %d at %H:%M:%S UTC"
 html_show_sourcelink = False
 # html_favicon = "_static/cog.ico"
 
-html_sidebars = {
-    "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"],
-    "index": ["logo-text.html", "globaltoc.html", "searchbox.html"],
-}
+# html_sidebars = {
+#     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"],
+#     "index": ["logo-text.html", "globaltoc.html", "searchbox.html"],
+# }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

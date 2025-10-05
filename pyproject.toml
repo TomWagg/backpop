@@ -58,7 +58,7 @@ docs = [
     "sphinx-copybutton",
     "numpydoc",
     "sphinx_togglebutton",
-    "sphinx_material",
+    "sphinx_immaterial",
     "sphinxcontrib.bibtex",
 ]
 

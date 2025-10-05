@@ -1,5 +1,6 @@
 :root {
     --backpop-primary: #074662;
+    --backpop-primary-darkmode: #2e7897;
     --backpop-secondary: #535abd;
 }
 
@@ -8,41 +9,10 @@
     padding-right: 0 !important;
 }
 
-.md-source {
-    padding: 0rem !important;
-}
-
-.md-source__facts li {
-    padding: 0 !important;
-}
-
-.md-source__fact {
-    display: inline !important;
-    float: unset !important;
-}
-
 .md-grid {
     max-width: unset !important;
     margin-left: 0.5rem !important;
     margin-right: 0.5rem !important;
-}
-
-.md-sidebar--primary {
-    border-right: 1px solid #f0f0f0 !important;
-}
-
-.md-sidebar--secondary {
-    border-left: 1px solid #f0f0f0 !important;
-}
-
-@media only screen and (min-width:88.25em) {
-    .md-sidebar--secondary {
-        margin-left: 74rem
-    }
-    [dir=rtl] .md-sidebar--secondary {
-        margin-right: 74rem;
-        margin-left: 0
-    }
 }
 
 button[data-md-color-primary=indigo] {
@@ -53,6 +23,10 @@ button[data-md-color-primary=indigo] {
     color: var(--backpop-primary) !important;
 }
 
+[data-md-color-scheme=slate] .md-typeset a {
+    color: var(--backpop-primary-darkmode) !important;
+}
+
 [data-md-color-primary=indigo] .md-header,
 [data-md-color-primary=indigo] .md-hero {
     background-color: var(--backpop-primary) !important;
@@ -61,6 +35,11 @@ button[data-md-color-primary=indigo] {
 [data-md-color-primary=indigo] .md-nav__link--active,
 [data-md-color-primary=indigo] .md-nav__link:active {
     color: var(--backpop-primary) !important;
+}
+
+[data-md-color-primary=indigo][data-md-color-scheme=slate] .md-nav__link--active,
+[data-md-color-primary=indigo][data-md-color-scheme=slate] .md-nav__link:active {
+    color: var(--backpop-primary-darkmode) !important;
 }
 
 [data-md-color-primary=indigo] .md-nav__item--nested>.md-nav__link {
@@ -126,4 +105,8 @@ button[data-md-color-accent=red] {
 
 [data-md-color-accent=red] .md-source-file:hover:before {
     background-color: var(--backpop-secondary) !important;
+}
+
+.md-clipboard:focus, .md-clipboard:hover {
+    color: var(--backpop-secondary) !important;
 }
