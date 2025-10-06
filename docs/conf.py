@@ -59,7 +59,8 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        'scipy': ('https://docs.scipy.org/doc/scipy', None),
                        'astropy': ('https://docs.astropy.org/en/stable', None),
                        'pandas': ('https://pandas.pydata.org/docs/', None),
-                       'cosmic': ('https://cosmic-popsynth.github.io/docs/stable/', None),}
+                       'cosmic': ('https://cosmic-popsynth.github.io/docs/stable/', None),
+                       'nautilus': ('https://nautilus-sampler.readthedocs.io/en/latest/', None),}
 
 bibtex_bibfiles = ['tutorials/refs.bib']
 
