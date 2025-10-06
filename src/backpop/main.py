@@ -111,6 +111,11 @@ class BackPop():
         kick_flat : np.ndarray
             Flattened array of the full kick info output from COSMIC
         '''
+        # ensure that if m1 and m2 are both provided, m1 >= m2
+        if "m1" in x and "m2" in x:
+            if x["m1"] < x["m2"]:
+                return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
+                        np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
 
         # enforce limits on physical values
         # TODO: check with Katie if this is necessary with Nautilus priors
