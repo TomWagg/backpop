@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import re
 
-__all__ = ['select_phase']
+__all__ = ['select_phase', 'add_vsys_from_kicks']
 
 # define allowed operations
 OPERATIONS = Literal['==', '!=', '<', '<=', '>', '>=', 'in', 'not in']
@@ -280,12 +280,12 @@ def add_vsys_from_kicks(bpp: pd.DataFrame, kick_info: pd.DataFrame) -> pd.DataFr
     """
     # get the kick magnitudes for each star if present; otherwise 0.0
     v1 = (
-        kick_info.loc[kick_info["star"] == 1, "vsys_1_total"].iloc[0]
-        if (kick_info["star"] == 1).any() else 0.0
+        kick_info.loc[kick_info["star"] == 1, ["vsys_1_total", "vsys_2_total"]].iloc[0].to_numpy()
+        if (kick_info["star"] == 1).any() else [0.0, 0.0]
     )
     v2 = (
-        kick_info.loc[kick_info["star"] == 2, "vsys_2_total"].iloc[0]
-        if (kick_info["star"] == 2).any() else 0.0
+        kick_info.loc[kick_info["star"] == 2, ["vsys_1_total", "vsys_2_total"]].iloc[0].to_numpy()
+        if (kick_info["star"] == 2).any() else [0.0, 0.0]
     )
 
     # boolean masks where the SN events occur (bcm doesn't have evol_type)
@@ -296,10 +296,23 @@ def add_vsys_from_kicks(bpp: pd.DataFrame, kick_info: pd.DataFrame) -> pd.DataFr
     sn1_has_happened = sn1_rows.cumsum().gt(0)
     sn2_has_happened = sn2_rows.cumsum().gt(0)
 
+    if sn1_rows.any() and sn2_rows.any():
+        first_sn1_index = sn1_rows.idxmax()
+        first_sn2_index = sn2_rows.idxmax()
+        sn1_was_first = first_sn1_index < first_sn2_index
+    else:
+        sn1_was_first = True
+
     # apply the constant values once each event has happened
     bpp = bpp.copy()
-    bpp["vsys_1_total"] = np.where(sn1_has_happened, float(v1), 0.0)
-    bpp["vsys_2_total"] = np.where(sn2_has_happened, float(v2), 0.0)
+    bpp[["vsys_1_total", "vsys_2_total"]] = 0.0
+
+    if sn1_was_first:
+        bpp.loc[sn1_has_happened, ["vsys_1_total", "vsys_2_total"]] = v1
+        bpp.loc[sn2_has_happened, ["vsys_1_total", "vsys_2_total"]] = v2
+    else:
+        bpp.loc[sn2_has_happened, ["vsys_1_total", "vsys_2_total"]] = v2
+        bpp.loc[sn1_has_happened, ["vsys_1_total", "vsys_2_total"]] = v1
 
     return bpp
 
