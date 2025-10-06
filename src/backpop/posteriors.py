@@ -14,21 +14,21 @@ class BackPopsteriors():
 
         Parameters
         ----------
-        file : ``str``, optional
+        file : str, optional
             Path to an HDF5 file containing posterior samples. The file should contain datasets
             named 'points', 'log_w', 'log_l', 'var_names', and 'blobs'.
-        points : ``np.ndarray``, optional
+        points : ~numpy.ndarray, optional
             Array of shape (n_samples, n_vars) containing posterior samples.
-        log_w : ``np.ndarray``, optional
+        log_w : ~numpy.ndarray, optional
             Array of shape (n_samples,) containing log weights for each sample.
-        log_l : ``np.ndarray``, optional
+        log_l : ~numpy.ndarray, optional
             Array of shape (n_samples,) containing log likelihoods for each sample.
-        var_names : ``list`` of ``str``, optional
+        var_names : list of str, optional
             List of variable names corresponding to the columns in `points`.
-        blobs : ``np.ndarray``, optional
+        blobs : ~numpy.ndarray, optional
             Array of shape (n_samples, ...) containing additional data associated with each sample.
             The exact shape and contents depend on the simulation outputs.
-        var_labels : ``list`` of ``str``, optional
+        var_labels : list of str, optional
             List of labels for the variables, used in plotting. If not provided, `var_names` will be used.
 
         Raises
