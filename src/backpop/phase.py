@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import re
 
-__all__ = ['select_phase', 'add_vsys_from_kicks']
+__all__ = ['select_phase', 'add_vsys_from_kicks', 'Condition', 'ConditionGroup', 'Not']
 
 # define allowed operations
 OPERATIONS = Literal['==', '!=', '<', '<=', '>', '>=', 'in', 'not in']
@@ -56,7 +56,7 @@ def _condition_to_mask(df: pd.DataFrame, condition: Condition) -> pd.Series:
 
     Parameters
     ----------
-    df : pd.DataFrame
+    df : :class:`~pandas.DataFrame`
         DataFrame to apply the condition to
     condition : Condition
         Condition to convert to a mask
@@ -94,7 +94,7 @@ def _group_to_mask(df: pd.DataFrame, group: Union[Condition, ConditionGroup]) ->
 
     Parameters
     ----------
-    df : pd.DataFrame
+    df : :class:`~pandas.DataFrame`
         DataFrame to apply the group of conditions to
     group : ConditionGroup or Condition
         Group of conditions to convert to a mask
@@ -259,24 +259,24 @@ def add_vsys_from_kicks(bpp: pd.DataFrame, kick_info: pd.DataFrame) -> pd.DataFr
     """Combine systemic velocity kicks from `kick_info` into the BPP DataFrame.
 
     Add two columns to `bpp`:
-      - 'vsys_1_total' becomes 0 until the first row with evol_type==15,
-        then equals kick_info['vsys_1_total'] for star==1 thereafter (or stays 0 if no such row).
-      - 'vsys_2_total' becomes 0 until the first row with evol_type==16,
-        then equals kick_info['vsys_2_total'] for star==2 thereafter (or stays 0 if no such row).
+      - ``vsys_1_total`` becomes 0 until the first row with evol_type==15,
+        then equals ``kick_info['vsys_1_total']`` for star==1 thereafter (or stays 0 if no such row).
+      - ``vsys_2_total`` becomes 0 until the first row with evol_type==16,
+        then equals ``kick_info['vsys_2_total']`` for star==2 thereafter (or stays 0 if no such row).
 
-    Assumes `bpp` rows are in chronological order.
+    Assumes ``bpp`` rows are in chronological order.
 
     Parameters
     ----------
-    bpp : pd.DataFrame
+    bpp : :class:`~pandas.DataFrame`
         DataFrame of the BPP array from COSMIC
-    kick_info : pd.DataFrame
+    kick_info : :class:`~pandas.DataFrame`
         DataFrame of the kick_info array from COSMIC
 
     Returns
     -------
-    pd.DataFrame
-        Modified BPP DataFrame with 'vsys_1_total' and 'vsys_2_total' columns added
+    bpp : :class:`~pandas.DataFrame`
+        Modified BPP DataFrame with '`vsys_1_total`' and '`vsys_2_total`' columns added
     """
     # get the kick magnitudes for each star if present; otherwise 0.0
     v1 = (
@@ -321,9 +321,9 @@ def select_phase(bpp, condition):
     
     Parameters
     ----------
-    bpp : pd.DataFrame
+    bpp : :class:`~pandas.DataFrame`
         DataFrame of the BPP array from COSMIC
-    condition : str or Group or Condition, optional
+    condition : str or ConditionGroup or Condition, optional
         The condition by which to select the phase. This can be a pre-defined phase name (one of
         ["BBH_merger", "BNS_merger", "NSBH_merger", "BH_MS", "NS_MS", "WD_MS", "BH_GS", "NS_GS", "WD_GS"]), or
         a custom condition string (e.g. "mass_1 > 4 & mass_2 < 3") based on the column names of the BPP
@@ -333,7 +333,7 @@ def select_phase(bpp, condition):
     
     Returns
     -------
-    out : pd.DataFrame or None
+    out : :class:`~pandas.DataFrame` or ``None``
         DataFrame at the time of the selected phase
 
     Examples
