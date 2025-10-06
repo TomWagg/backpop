@@ -11,6 +11,7 @@ from nautilus import Prior, Sampler
 from .consts import *
 from .files import parse_inifile
 from .phase import select_phase, add_vsys_from_kicks
+from .posteriors import BackPopsteriors
 
 
 __all__ = ["BackPop"]
@@ -100,6 +101,9 @@ class BackPop():
                 f.create_dataset('log_l', data=log_l)
                 f.create_dataset('blobs', data=blobs)
                 f.create_dataset('var_names', data=[n for n in self.var["name"]])
+
+        return BackPopsteriors(points=points, log_w=log_w, log_l=log_l,
+                               var_names=self.var["name"], blobs=blobs)
 
 
     def likelihood(self, x):

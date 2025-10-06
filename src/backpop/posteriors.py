@@ -5,7 +5,7 @@ import h5py as h5
 import pandas as pd
 from .consts import BPP_SHAPE, KICK_SHAPE, BPP_COLUMNS, KICK_COLUMNS
 
-class BackPopPosteriors():
+class BackPopsteriors():
     def __init__(self, file=None, points=None, log_w=None, log_l=None, var_names=None,
                  blobs=None, var_labels=None):
         """Utility class to handle and analyse posterior samples from BackPop.
