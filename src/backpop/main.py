@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import h5py as h5
 
 from scipy.stats import multivariate_normal
 import os.path
@@ -74,6 +75,10 @@ class BackPop():
         if self.config["verbose"]:
             print(f"Running sampling using multiprocessing with {self.config['n_threads']} threads")
     
+        if self.config["output_folder"] != "" and self.config["output_folder"] != "None":
+            filepath = os.path.join(self.config["output_folder"], 'samples_out.hdf5')
+        else:
+            filepath = None
         self.sampler = Sampler(
             prior=self.prior, 
             likelihood=self.likelihood, 
@@ -81,14 +86,21 @@ class BackPop():
             pool=self.config["n_threads"],
             blobs_dtype=[('bpp', float, 35*len(BPP_COLUMNS)),
                          ('kick_info', float, 2*len(KICK_COLUMNS))],
-            filepath=os.path.join(self.config["filepath"], 'samples_out.hdf5'), 
+            filepath=filepath, 
             resume=self.config["resume"]
         )
         self.sampler.run(n_eff=self.config["n_eff"], verbose=self.config["verbose"], discard_exploration=True)
 
         points, log_w, log_l, blobs = self.sampler.posterior(return_blobs=True)
-        for label, val in zip(["points", "log_w", "log_l", "blobs"], [points, log_w, log_l, blobs]):
-            np.save(os.path.join(self.config["filepath"], f"{label}.npy"), val)
+
+        if self.config["output_folder"] != "" and self.config["output_folder"] != "None":
+            with h5.File(os.path.join(self.config["output_folder"], 'posteriors.h5'), 'w') as f:
+                f.create_dataset('points', data=points)
+                f.create_dataset('log_w', data=log_w)
+                f.create_dataset('log_l', data=log_l)
+                f.create_dataset('blobs', data=blobs)
+                f.create_dataset('var_names', data=[n for n in self.var["name"]])
+
 
     def likelihood(self, x):
         '''Calculate the log-likelihood of a binary.
