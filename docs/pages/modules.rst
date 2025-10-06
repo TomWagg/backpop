@@ -11,6 +11,7 @@ then you can also use the search box above!
 
     ../modules/main
     ../modules/phase
+    ../modules/posteriors
     ../modules/files
     ../modules/consts
 
