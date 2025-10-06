@@ -9,7 +9,7 @@ from nautilus import Prior, Sampler
 
 from .consts import *
 from .files import parse_inifile
-from .phase import select_phase
+from .phase import select_phase, add_vsys_from_kicks
 
 
 __all__ = ["BackPop"]
@@ -237,8 +237,9 @@ class BackPop():
         kick_info = pd.DataFrame(kick_info_arrays,
                                  columns=KICK_COLUMNS,
                                  index=kick_info_arrays[:, -1].astype(int))
-
-        out = select_phase(bcm if self.config["use_bcm"] else bpp, condition=self.config["phase_condition"])
+        
+        phase_table = add_vsys_from_kicks(bcm if self.config["use_bcm"] else bpp, kick_info)
+        out = select_phase(phase_table, condition=self.config["phase_condition"])
 
         if len(out) > 0:
             # print("FOUND ONE!")
