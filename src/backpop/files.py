@@ -33,20 +33,20 @@ def parse_inifile(ini_file):
 
     Parameters
     ----------
-    ini_file : ``str``
+    ini_file : str
         Path to the ini file
 
     Returns
     -------
-    config : ``dict``
+    config : dict
         Dictionary of BackPop configuration parameters
-    flags : ``dict``
+    flags : dict
         Dictionary of BSE flags
-    obs : ``dict``
+    obs : dict
         Dictionary of observations with keys "mean", "sigma", "name", and "out_name"
-    var : ``dict``
+    var : dict
         Dictionary of variable parameters with keys "min", "max", and "name"
-    fixed : ``dict``
+    fixed : dict
         Dictionary of fixed parameters with parameter names as keys and values as values
     """
     config_file = ConfigParser()

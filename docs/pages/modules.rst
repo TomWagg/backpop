@@ -13,7 +13,6 @@ then you can also use the search box above!
     ../modules/phase
     ../modules/posteriors
     ../modules/files
-    ../modules/consts
 
 .. toctree::
     :caption: Changelog

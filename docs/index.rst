@@ -16,12 +16,12 @@ Home
 .. code-block:: python
 
     from backpop import BackPop
-    bp = BackPop()
-    bp.sample(1000)
-    bp.plot_distributions()
+    bp = BackPop(config_file="example.ini")
+    posteriors = bp.run_sampler()
+    posteriors.cornerplot()
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 10
    :hidden:
 
    pages/install

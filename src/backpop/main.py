@@ -117,9 +117,9 @@ class BackPop():
         -------
         ll : float
             The log-likelihood of the binary given the input parameters and priors
-        bpp_flat : np.ndarray
+        bpp_flat : :class:`~numpy.ndarray`
             Flattened array of the full BPP output from COSMIC
-        kick_flat : np.ndarray
+        kick_flat : :class:`~numpy.ndarray`
             Flattened array of the full kick info output from COSMIC
         '''
         # ensure that if m1 and m2 are both provided, m1 >= m2
@@ -174,9 +174,9 @@ class BackPop():
         out : :class:`~pandas.DataFrame` or None
             DataFrame of output parameters at the time of the selected phase, or None if
             the phase was not reached
-        bpp : np.ndarray or None
+        bpp : :class:`~numpy.ndarray` or None
             Full BPP array from COSMIC, or None if the phase was not reached
-        kick_info : np.ndarray or None
+        kick_info : :class:`~numpy.ndarray` or None
             Full kick info array from COSMIC, or None if the phase was not reached
         '''
         # handle initial binary parameters first, ensure all have been provided somewhere
