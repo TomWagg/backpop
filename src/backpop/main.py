@@ -12,6 +12,9 @@ from .files import parse_inifile
 from .phase import select_phase
 
 
+__all__ = ["BackPop"]
+
+
 class BackPop():
     """Class to sample the joint distributions of initial binary parameters and binary interaction
     assumptions using Nautilus and COSMIC.
@@ -224,17 +227,18 @@ class BackPop():
 
         bpp = _evolvebin.binary.bpp[:35, :n_col_bpp].copy()
         _evolvebin.binary.bpp[:bpp_index, :n_col_bpp] = np.zeros((bpp_index, n_col_bpp))
-        bcm = _evolvebin.binary.bcm[:35, :n_col_bcm].copy()
+        bcm = _evolvebin.binary.bcm[:bcm_index, :n_col_bcm].copy()
         _evolvebin.binary.bcm[:bcm_index, :n_col_bcm] = np.zeros((bcm_index, n_col_bcm))
         # print(bpp.shape)
 
         bpp = pd.DataFrame(bpp, columns=BPP_COLUMNS)
+        bcm = pd.DataFrame(bcm, columns=BCM_COLUMNS)
 
         kick_info = pd.DataFrame(kick_info_arrays,
-                                columns=KICK_COLUMNS,
-                                index=kick_info_arrays[:, -1].astype(int))
+                                 columns=KICK_COLUMNS,
+                                 index=kick_info_arrays[:, -1].astype(int))
 
-        out = select_phase(bpp, condition=self.config["phase_condition"])
+        out = select_phase(bcm if self.config["use_bcm"] else bpp, condition=self.config["phase_condition"])
 
         if len(out) > 0:
             # print("FOUND ONE!")
