@@ -255,6 +255,54 @@ def _parse_conditions(conds: str) -> Union[ConditionGroup, Condition]:
     return output[0]
 
 
+def add_vsys_from_kicks(bpp: pd.DataFrame, kick_info: pd.DataFrame) -> pd.DataFrame:
+    """Combine systemic velocity kicks from `kick_info` into the BPP DataFrame.
+
+    Add two columns to `bpp`:
+      - 'vsys_1_total' becomes 0 until the first row with evol_type==15,
+        then equals kick_info['vsys_1_total'] for star==1 thereafter (or stays 0 if no such row).
+      - 'vsys_2_total' becomes 0 until the first row with evol_type==16,
+        then equals kick_info['vsys_2_total'] for star==2 thereafter (or stays 0 if no such row).
+
+    Assumes `bpp` rows are in chronological order.
+
+    Parameters
+    ----------
+    bpp : pd.DataFrame
+        DataFrame of the BPP array from COSMIC
+    kick_info : pd.DataFrame
+        DataFrame of the kick_info array from COSMIC
+
+    Returns
+    -------
+    pd.DataFrame
+        Modified BPP DataFrame with 'vsys_1_total' and 'vsys_2_total' columns added
+    """
+    # get the kick magnitudes for each star if present; otherwise 0.0
+    v1 = (
+        kick_info.loc[kick_info["star"] == 1, "vsys_1_total"].iloc[0]
+        if (kick_info["star"] == 1).any() else 0.0
+    )
+    v2 = (
+        kick_info.loc[kick_info["star"] == 2, "vsys_2_total"].iloc[0]
+        if (kick_info["star"] == 2).any() else 0.0
+    )
+
+    # boolean masks where the SN events occur (bcm doesn't have evol_type)
+    sn1_rows = bpp["evol_type"].eq(15) if "evol_type" in bpp else bpp["kstar_1"].isin([13,14])
+    sn2_rows = bpp["evol_type"].eq(16) if "evol_type" in bpp else bpp["kstar_2"].isin([13,14])
+
+    # step functions: False before first event, True from the first event onward
+    sn1_has_happened = sn1_rows.cumsum().gt(0)
+    sn2_has_happened = sn2_rows.cumsum().gt(0)
+
+    # apply the constant values once each event has happened
+    bpp = bpp.copy()
+    bpp["vsys_1_total"] = np.where(sn1_has_happened, float(v1), 0.0)
+    bpp["vsys_2_total"] = np.where(sn2_has_happened, float(v2), 0.0)
+
+    return bpp
+
 def select_phase(bpp, condition):
     '''Select the rows of the BPP array corresponding to a given phase.
     
