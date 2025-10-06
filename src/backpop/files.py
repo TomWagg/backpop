@@ -1,6 +1,8 @@
 import ast
 from configparser import ConfigParser
 
+__all__ = ["parse_inifile"]
+
 def _eval_div_only(node):
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
         return node.value
@@ -27,6 +29,26 @@ def _eval_div_only(node):
     raise ValueError(f"Unsupported construct: {ast.dump(node, include_attributes=False)}")
 
 def parse_inifile(ini_file):
+    """Parse BackPop and COSMIC configurations from an ini file
+
+    Parameters
+    ----------
+    ini_file : ``str``
+        Path to the ini file
+
+    Returns
+    -------
+    config : ``dict``
+        Dictionary of BackPop configuration parameters
+    flags : ``dict``
+        Dictionary of BSE flags
+    obs : ``dict``
+        Dictionary of observations with keys "mean", "sigma", "name", and "out_name"
+    var : ``dict``
+        Dictionary of variable parameters with keys "min", "max", and "name"
+    fixed : ``dict``
+        Dictionary of fixed parameters with parameter names as keys and values as values
+    """
     config_file = ConfigParser()
     config_file.read(ini_file)
     config_dict = {section: dict(config_file.items(section)) for section in config_file.sections()}
@@ -41,7 +63,6 @@ def parse_inifile(ini_file):
     flags = config_dict["bse"]
     for k, v in flags.items():
         flags[k] = _eval_div_only(ast.parse(v, mode='eval').body)
-    print(flags)
 
     # convert ini file inputs to observations, variables, and fixed parameters
     obs = {
