@@ -94,16 +94,11 @@ class BackPop():
 
         points, log_w, log_l, blobs = self.sampler.posterior(return_blobs=True)
 
-        if self.config["output_folder"] != "" and self.config["output_folder"] != "None":
-            with h5.File(os.path.join(self.config["output_folder"], 'posteriors.h5'), 'w') as f:
-                f.create_dataset('points', data=points)
-                f.create_dataset('log_w', data=log_w)
-                f.create_dataset('log_l', data=log_l)
-                f.create_dataset('blobs', data=blobs)
-                f.create_dataset('var_names', data=[n for n in self.var["name"]])
+        posteriors = BackPopsteriors(points=points, log_w=log_w, log_l=log_l,
+                                     var_names=self.var["name"], blobs=blobs)
 
-        return BackPopsteriors(points=points, log_w=log_w, log_l=log_l,
-                               var_names=self.var["name"], blobs=blobs)
+        if self.config["output_folder"] != "" and self.config["output_folder"] != "None":
+            posteriors.save(os.path.join(self.config["output_folder"], 'posteriors.h5'))
 
 
     def likelihood(self, x):
@@ -176,7 +171,7 @@ class BackPop():
         
         Returns
         -------
-        out : pd.DataFrame or None
+        out : :class:`~pandas.DataFrame` or None
             DataFrame of output parameters at the time of the selected phase, or None if
             the phase was not reached
         bpp : np.ndarray or None
