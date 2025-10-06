@@ -96,7 +96,7 @@ exclude_patterns = [
 # a list of builtin themes.
 #
 html_theme = 'sphinx_immaterial'
-html_logo = '_static/backpop.png'
+html_logo = '_static/backpop-square.png'
 
 html_theme_options = {
 
@@ -152,7 +152,7 @@ html_theme_options = {
 
 html_last_updated_fmt = "%Y %b %d at %H:%M:%S UTC"
 html_show_sourcelink = False
-# html_favicon = "_static/cog.ico"
+html_favicon = "_static/backpop-square.ico"
 
 # html_sidebars = {
 #     "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"],
