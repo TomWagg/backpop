@@ -36,9 +36,10 @@ class BackPopsteriors():
         ValueError
             If neither `file` nor all of `points`, `log_w`, `log_l`, and `var_names` are provided.
         """
+        self.file = file
+        self.blobs = None
         self.bpp = None
         self.kick_info = None
-        self.file = file
 
         # load data from file if provided
         if file is not None:
