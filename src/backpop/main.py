@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import h5py as h5
 
 from scipy.stats import multivariate_normal
 import os.path
@@ -137,6 +136,11 @@ class BackPop():
                 return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
                         np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
 
+        # turn sampled log-parameters back into linear space if necessary
+        for i, name in enumerate(x):
+            if self.var["log"][i]:
+                x[name] = 10**x[name]
+
         # evolve the binary
         result = self.evolv2(x)
         # check result and calculate likelihood
@@ -258,8 +262,7 @@ class BackPop():
         out = select_phase(phase_table, condition=self.config["phase_condition"])
 
         if len(out) > 0:
-            # print("FOUND ONE!")
-            return out[self.obs["out_name"]].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
+            return out[self.obs["name"]].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
         else:
             return None, None, None
 

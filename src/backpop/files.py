@@ -75,6 +75,7 @@ def parse_inifile(ini_file):
         "min": [],
         "max": [],
         "name": [],
+        "log": []
     }
     fixed = {}
     for k in config_dict:
@@ -83,12 +84,12 @@ def parse_inifile(ini_file):
             var["name"].append(var_name)
             var["min"].append(float(config_dict[k]["min"].strip()))
             var["max"].append(float(config_dict[k]["max"].strip()))
+            var["log"].append(config_dict[k].get("log", "False").strip().lower() == "true")
         if k.startswith("backpop.obs::"):
             obs_name = k.split("backpop.obs::")[-1]
             obs["name"].append(obs_name)
             obs["mean"].append(float(config_dict[k]["mean"].strip()))
             obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
-            obs["out_name"].append(config_dict[k]["out_name"].strip())
         if k.startswith("backpop.fixed::"):
             fixed_name = k.split("backpop.fixed::")[-1]
             fixed[fixed_name] = float(config_dict[k]["value"].strip())
