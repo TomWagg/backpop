@@ -56,7 +56,7 @@ def parse_inifile(ini_file):
     config = config_dict["backpop"]
     for k in ["n_threads", "n_eff", "n_live"]:
         config[k] = int(config[k])
-    for k in ["verbose", "resume"]:
+    for k in ["verbose", "resume", "use_bcm"]:
         config[k] = config[k].lower() in ["true", "1", "yes"]
 
     # make sure all flags are the correct type
