@@ -97,7 +97,7 @@ class BackPop():
                                      var_names=self.var["name"], blobs=blobs)
 
         if self.config["output_folder"] != "" and self.config["output_folder"] != "None":
-            posteriors.save(os.path.join(self.config["output_folder"], 'posteriors.h5'))
+            posteriors.save(file=os.path.join(self.config["output_folder"], 'posteriors.h5'))
 
 
     def likelihood(self, x):
@@ -148,6 +148,12 @@ class BackPop():
             # print("No result!!")
             return (-np.inf, np.full(np.prod(BPP_SHAPE), np.nan, dtype=float),
                     np.full(np.prod(KICK_SHAPE), np.nan, dtype=float))
+
+        # apply log values to observed parameters if necessary
+        for i, name in enumerate(self.obs["name"]):
+            if self.obs["log"][i]:
+                result[0][i] = np.log10(result[0][i])
+
         ll = np.sum(self.rv.logpdf(result[0]))
 
         # flatten arrays and force dtype
@@ -262,7 +268,7 @@ class BackPop():
         out = select_phase(phase_table, condition=self.config["phase_condition"])
 
         if len(out) > 0:
-            return out[self.obs["name"]].iloc[0], bpp.to_numpy(), kick_info.to_numpy()
+            return out[self.obs["name"]].iloc[0].to_numpy(), bpp.to_numpy(), kick_info.to_numpy()
         else:
             return None, None, None
 

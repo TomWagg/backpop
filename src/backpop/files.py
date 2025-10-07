@@ -69,7 +69,7 @@ def parse_inifile(ini_file):
         "mean": [],
         "sigma": [],
         "name": [],
-        "out_name": []
+        "log": []
     }
     var = {
         "min": [],
@@ -90,6 +90,7 @@ def parse_inifile(ini_file):
             obs["name"].append(obs_name)
             obs["mean"].append(float(config_dict[k]["mean"].strip()))
             obs["sigma"].append(float(config_dict[k]["sigma"].strip()))
+            obs["log"].append(config_dict[k].get("log", "False").strip().lower() == "true")
         if k.startswith("backpop.fixed::"):
             fixed_name = k.split("backpop.fixed::")[-1]
             fixed[fixed_name] = float(config_dict[k]["value"].strip())
