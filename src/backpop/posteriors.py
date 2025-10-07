@@ -146,7 +146,9 @@ class BackPopsteriors():
             f.create_dataset('var_names', data=[n for n in self.var_names])
             if self.blobs is not None:
                 f.create_dataset('blobs', data=self.blobs)
-            if self.bpp is not None:
-                self.bpp.to_hdf(file, 'bpp')
-            if self.kick_info is not None:
-                self.kick_info.to_hdf(file, 'kick_info')
+
+        # save bpp and kick info if they exist
+        if self.bpp is not None:
+            self.bpp.to_hdf(file, 'bpp')
+        if self.kick_info is not None:
+            self.kick_info.to_hdf(file, 'kick_info')
