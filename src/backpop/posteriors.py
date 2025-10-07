@@ -82,7 +82,8 @@ class BackPopsteriors():
             # filter out empty data (evol_type would never be 0 in a real binary)
             self.bpp = self.bpp[self.bpp["evol_type"] > 0.0]
 
-            del self.blobs  # save memory
+            # free up some memory
+            self.blobs = None
 
     def __len__(self):
         return self.points.shape[0]
