@@ -190,7 +190,7 @@ class BackPop():
             Full kick info array from COSMIC, or None if the phase was not reached
         '''
         # handle initial binary parameters first, ensure all have been provided somewhere
-        for param in ["m1", "m2", "tb", "e", "metallicity", "tphysf"]:
+        for param in ["m1", "m2", "tb", "e", "metallicity", "tphys"]:
             if param not in params_in and param not in self.fixed:
                 raise ValueError(f"You must provide an input value for {param} "
                                  "either as a variable or fixed parameter")
@@ -202,7 +202,7 @@ class BackPop():
         tb = params_in["tb"] if "tb" in params_in else self.fixed["tb"]
         e = params_in["e"] if "e" in params_in else self.fixed["e"]
         metallicity = params_in["metallicity"] if "metallicity" in params_in else self.fixed["metallicity"]
-        tphysf = params_in["tphysf"] if "tphysf" in params_in else self.fixed["tphysf"]
+        tphysf = params_in["tphys"] if "tphys" in params_in else self.fixed["tphys"]
 
         # set the other flags
         self.set_flags(params_in)
@@ -268,6 +268,7 @@ class BackPop():
         out = select_phase(phase_table, condition=self.config["phase_condition"])
 
         if len(out) > 0:
+            # print(f'Found a binary that meets the phase condition! m1={m1:1.2f}, m2={m2:1.2f}, tb={tb:1.2f}, e={e:1.2f}, tphysf={tphysf:1.2f}, vsys_2_total ={out["vsys_2_total"].iloc[0]:1.2f}, teff_2 = {out["teff_2"].iloc[0]:1.2f}, log_lum_2 = {np.log10(out["lum_2"].iloc[0]):1.2f}')
             return out[self.obs["name"]].iloc[0].to_numpy(), bpp.to_numpy(), kick_info.to_numpy()
         else:
             return None, None, None
