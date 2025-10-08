@@ -190,7 +190,7 @@ class BackPop():
             Full kick info array from COSMIC, or None if the phase was not reached
         '''
         # handle initial binary parameters first, ensure all have been provided somewhere
-        for param in ["m1", "m2", "tb", "e", "metallicity"]:
+        for param in ["m1", "m2", "tb", "e", "metallicity", "tphysf"]:
             if param not in params_in and param not in self.fixed:
                 raise ValueError(f"You must provide an input value for {param} "
                                  "either as a variable or fixed parameter")
@@ -202,6 +202,7 @@ class BackPop():
         tb = params_in["tb"] if "tb" in params_in else self.fixed["tb"]
         e = params_in["e"] if "e" in params_in else self.fixed["e"]
         metallicity = params_in["metallicity"] if "metallicity" in params_in else self.fixed["metallicity"]
+        tphysf = params_in["tphysf"] if "tphysf" in params_in else self.fixed["tphysf"]
 
         # set the other flags
         self.set_flags(params_in)
@@ -235,7 +236,6 @@ class BackPop():
         
         # setup the inputs for _evolvebin
         zpars = np.zeros(20)
-        tphysf = 13700.0
         dtp = 0.0
         tphys = 0.0
         bkick = np.zeros(20)
